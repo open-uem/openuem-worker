@@ -42,8 +42,13 @@ func startAgentsWorker(cCtx *cli.Context) error {
 	}
 
 	log.Println("📩  subscribing to agents messages")
-	// TODO do something with subscription?
+
 	_, err = command.MessageServer.Connection.QueueSubscribe("report", "openuem-agents", command.reportReceivedHandler)
+	if err != nil {
+		log.Fatalf("❌ could not subscribe to NATS message, reason: %s", err.Error())
+	}
+
+	_, err = command.MessageServer.Connection.QueueSubscribe("deployresult", "openuem-agents", command.deployResultReceivedHandler)
 	if err != nil {
 		log.Fatalf("❌ could not subscribe to NATS message, reason: %s", err.Error())
 	}
@@ -112,5 +117,26 @@ func (command *WorkerCommand) reportReceivedHandler(msg *nats.Msg) {
 
 	if err := msg.Respond([]byte("Report received!")); err != nil {
 		log.Printf("❌ could not respond to report message, reason: %s\n", err.Error())
+	}
+}
+
+func (command *WorkerCommand) deployResultReceivedHandler(msg *nats.Msg) {
+	data := openuem_nats.DeployAction{}
+
+	if err := json.Unmarshal(msg.Data, &data); err != nil {
+		log.Printf("❌ could not unmarshal deploy message, reason: %s\n", err.Error())
+	}
+
+	if err := command.Model.SaveDeployInfo(&data); err != nil {
+		log.Printf("❌ could not save deployment info into database, reason: %s\n", err.Error())
+
+		if err := msg.Respond([]byte(err.Error())); err != nil {
+			log.Printf("❌ could not respond to deploy message, reason: %s\n", err.Error())
+		}
+		return
+	}
+
+	if err := msg.Respond([]byte("")); err != nil {
+		log.Printf("❌ could not respond to deploy message, reason: %s\n", err.Error())
 	}
 }
