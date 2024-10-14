@@ -33,6 +33,7 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 		SetVersion(data.Version).
 		SetEnabled(true).
 		SetIP(data.IP).
+		SetMAC(data.MACAddress).
 		SetVnc(data.SupportedVNCServer)
 
 	if exists {
