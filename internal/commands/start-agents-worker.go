@@ -115,6 +115,10 @@ func (command *WorkerCommand) reportReceivedHandler(msg *nats.Msg) {
 		log.Printf("❌ could not save shares info into database, reason: %s\n", err.Error())
 	}
 
+	if err := command.Model.SaveUpdatesInfo(&data); err != nil {
+		log.Printf("❌ could not save updates info into database, reason: %s\n", err.Error())
+	}
+
 	if err := msg.Respond([]byte("Report received!")); err != nil {
 		log.Printf("❌ could not respond to report message, reason: %s\n", err.Error())
 	}

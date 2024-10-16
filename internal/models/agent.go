@@ -16,6 +16,7 @@ import (
 	"github.com/doncicuto/openuem_ent/printer"
 	"github.com/doncicuto/openuem_ent/share"
 	"github.com/doncicuto/openuem_ent/systemupdate"
+	"github.com/doncicuto/openuem_ent/update"
 	"github.com/doncicuto/openuem_nats"
 )
 
@@ -287,6 +288,35 @@ func (m *Model) SaveSharesInfo(data *openuem_nats.AgentReport) error {
 			SetName(shareData.Name).
 			SetDescription(shareData.Description).
 			SetPath(shareData.Path).
+			SetOwnerID(data.AgentID).
+			Exec(ctx); err != nil {
+			return tx.Rollback()
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (m *Model) SaveUpdatesInfo(data *openuem_nats.AgentReport) error {
+	ctx := context.Background()
+
+	tx, err := m.Client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Update.Delete().Where(update.HasOwnerWith(agent.ID(data.AgentID))).Exec(ctx)
+	if err != nil {
+		log.Printf("could not delete previous updates information: %s", err.Error())
+		return tx.Rollback()
+	}
+
+	for _, updatesData := range data.Updates {
+		if err := tx.Update.
+			Create().
+			SetTitle(updatesData.Title).
+			SetDate(updatesData.Date).
+			SetSupportURL(updatesData.SupportURL).
 			SetOwnerID(data.AgentID).
 			Exec(ctx); err != nil {
 			return tx.Rollback()
