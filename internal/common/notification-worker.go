@@ -57,8 +57,8 @@ func (w *Worker) GenerateNotificationWorkerConfig() error {
 	}
 	defer k.Close()
 
-	w.ClientCertPath = filepath.Join(cwd, "certificates", "cert-manager-worker", "worker.cer")
-	w.ClientKeyPath = filepath.Join(cwd, "certificates", "cert-manager-worker", "worker.key")
+	w.ClientCertPath = filepath.Join(cwd, "certificates", "notification-worker", "worker.cer")
+	w.ClientKeyPath = filepath.Join(cwd, "certificates", "notification-worker", "worker.key")
 	w.CACertPath = filepath.Join(cwd, "certificates", "ca", "ca.cer")
 	w.CAKeyPath = filepath.Join(cwd, "certificates", "ca", "ca.key")
 
