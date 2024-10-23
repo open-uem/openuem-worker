@@ -35,7 +35,7 @@ func startNotificationsWorker(cCtx *cli.Context) error {
 	worker := common.NewWorker("")
 
 	if err := worker.CheckCLICommonRequisites(cCtx); err != nil {
-		return err
+		log.Printf("[ERROR]: could not generate config for Notification Worker: %v", err)
 	}
 
 	worker.StartWorker(worker.SubscribeToNotificationWorkerQueues)
@@ -47,11 +47,11 @@ func startNotificationsWorker(cCtx *cli.Context) error {
 	// Keep the connection alive
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-	log.Printf("✅  Done! Your Notification Worker is ready and listening for requests\n\n")
+	log.Printf("[INFO]: notification worker is ready and listening for requests\n\n")
 	<-done
 
 	worker.StopWorker()
 
-	log.Printf("👋  Done! Your Notification Worker has been shutdown\n\n")
+	log.Printf("[INFO]: notification Worker has been shutdown\n\n")
 	return nil
 }

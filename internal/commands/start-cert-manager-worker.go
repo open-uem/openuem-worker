@@ -75,7 +75,7 @@ func startCertManagerWorker(cCtx *cli.Context) error {
 	worker.OCSPResponders = ocspServers
 
 	if err := worker.CheckCLICommonRequisites(cCtx); err != nil {
-		return err
+		log.Printf("[ERROR]: could not generate config for Cert Manager Worker: %v", err)
 	}
 
 	if err := os.WriteFile("PIDFILE", []byte(strconv.Itoa(os.Getpid())), 0666); err != nil {

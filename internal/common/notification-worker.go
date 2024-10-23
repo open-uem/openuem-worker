@@ -1,6 +1,12 @@
 package common
 
-import "log"
+import (
+	"log"
+	"path/filepath"
+
+	"github.com/doncicuto/openuem_utils"
+	"golang.org/x/sys/windows/registry"
+)
 
 func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 	var err error
@@ -25,6 +31,49 @@ func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 		return err
 	}
 	log.Println("[INFO]: subscribed to queue notification.send_certificate")
+
+	return nil
+}
+
+func (w *Worker) GenerateNotificationWorkerConfig() error {
+	var err error
+
+	w.DBUrl, err = openuem_utils.CreatePostgresDatabaseURL()
+	if err != nil {
+		log.Printf("[ERROR]: %v", err)
+		return err
+	}
+
+	cwd, err := GetWd()
+	if err != nil {
+		log.Println("[ERROR]: could not get working directory")
+		return err
+	}
+
+	k, err := openuem_utils.OpenRegistryForQuery(registry.LOCAL_MACHINE, `SOFTWARE\OpenUEM\Server`)
+	if err != nil {
+		log.Println("[ERROR]: could not open registry")
+		return err
+	}
+	defer k.Close()
+
+	w.ClientCertPath = filepath.Join(cwd, "certificates", "cert-manager-worker", "worker.cer")
+	w.ClientKeyPath = filepath.Join(cwd, "certificates", "cert-manager-worker", "worker.key")
+	w.CACertPath = filepath.Join(cwd, "certificates", "ca", "ca.cer")
+	w.CAKeyPath = filepath.Join(cwd, "certificates", "ca", "ca.key")
+
+	w.NATSServers, err = openuem_utils.GetValueFromRegistry(k, "NATSServers")
+	if err != nil {
+		log.Println("[ERROR]: could not read NATS servers from registry")
+		return err
+	}
+
+	// read required certificates and private keys
+	w.CACert, err = openuem_utils.ReadPEMCertificate(w.CACertPath)
+	if err != nil {
+		log.Println("[ERROR]: could not read CA cert file")
+		return err
+	}
 
 	return nil
 }

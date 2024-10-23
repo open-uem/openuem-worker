@@ -35,7 +35,7 @@ func startAgentsWorker(cCtx *cli.Context) error {
 	worker := common.NewWorker("")
 
 	if err := worker.CheckCLICommonRequisites(cCtx); err != nil {
-		return err
+		log.Printf("[ERROR]: could not generate config for Agents Worker: %v", err)
 	}
 
 	if err := os.WriteFile("PIDFILE", []byte(strconv.Itoa(os.Getpid())), 0666); err != nil {

@@ -7,12 +7,15 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"log"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/doncicuto/openuem_ent/certificate"
 	"github.com/doncicuto/openuem_nats"
 	"github.com/doncicuto/openuem_utils"
 	"github.com/nats-io/nats.go"
+	"golang.org/x/sys/windows/registry"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
@@ -137,4 +140,66 @@ func (w *Worker) RevokeCertificateHandler(msg *nats.Msg) {
 		log.Println("[ERR]: could not send response", err.Error())
 		return
 	}
+}
+
+func (w *Worker) GenerateCertManagerWorkerConfig() error {
+	var err error
+
+	w.DBUrl, err = openuem_utils.CreatePostgresDatabaseURL()
+	if err != nil {
+		log.Printf("[ERROR]: %v", err)
+		return err
+	}
+
+	cwd, err := GetWd()
+	if err != nil {
+		log.Println("[ERROR]: could not get working directory")
+		return err
+	}
+
+	k, err := openuem_utils.OpenRegistryForQuery(registry.LOCAL_MACHINE, `SOFTWARE\OpenUEM\Server`)
+	if err != nil {
+		log.Println("[ERROR]: could not open registry")
+		return err
+	}
+	defer k.Close()
+
+	w.ClientCertPath = filepath.Join(cwd, "certificates", "cert-manager-worker", "worker.cer")
+	w.ClientKeyPath = filepath.Join(cwd, "certificates", "cert-manager-worker", "worker.key")
+	w.CACertPath = filepath.Join(cwd, "certificates", "ca", "ca.cer")
+	w.CAKeyPath = filepath.Join(cwd, "certificates", "ca", "ca.key")
+
+	w.NATSServers, err = openuem_utils.GetValueFromRegistry(k, "NATSServers")
+	if err != nil {
+		log.Println("[ERROR]: could not read NATS servers from registry")
+		return err
+	}
+
+	// get ocsp servers
+	ocspServers := []string{}
+	servers, err := openuem_utils.GetValueFromRegistry(k, "OCSPResponders")
+	if err != nil {
+		log.Println("[ERROR]: could not read OCSP responders from registry")
+		return err
+	}
+
+	for _, ocsp := range strings.Split(servers, ",") {
+		ocspServers = append(ocspServers, strings.TrimSpace(ocsp))
+	}
+	w.OCSPResponders = ocspServers
+
+	// read required certificates and private keys
+	w.CACert, err = openuem_utils.ReadPEMCertificate(w.CACertPath)
+	if err != nil {
+		log.Println("[ERROR]: could not read CA cert file")
+		return err
+	}
+
+	w.CAPrivateKey, err = openuem_utils.ReadPEMPrivateKey(w.CAKeyPath)
+	if err != nil {
+		log.Println("[ERROR]: could not read CA private key file")
+		return err
+	}
+
+	return nil
 }
