@@ -104,28 +104,33 @@ func (w *Worker) NewCertificateHandler(msg *nats.Msg) {
 	cr := openuem_nats.CertificateRequest{}
 	if err := json.Unmarshal(msg.Data, &cr); err != nil {
 		log.Printf("[ERR]: could not unmarshall new certificate request, reason: %s", err.Error())
+		msg.NakWithDelay(5 * time.Minute)
 		return
 	}
 	w.CertRequest = &cr
 
 	if err := w.GenerateUserCertificate(); err != nil {
 		log.Printf("[ERR]: could not generate the user certificate, reason: %s", err.Error())
+		msg.NakWithDelay(5 * time.Minute)
 		return
 	}
 
 	if err := w.SendNotification(); err != nil {
 		log.Printf("[ERR]: could not send the user certificate, reason: %s", err.Error())
+		msg.NakWithDelay(5 * time.Minute)
 		return
 	}
 
 	certDescription := w.CertRequest.Username + " client certificate"
 	if err := w.Model.SaveCertificate(w.UserCert.SerialNumber.Int64(), certificate.Type("user"), w.CertRequest.Username, certDescription, w.UserCert.NotAfter); err != nil {
 		log.Println("[ERR]: error saving certificate status", err.Error())
+		msg.NakWithDelay(5 * time.Minute)
 		return
 	}
 
 	if err := w.Model.SetCertificateSent(w.CertRequest.Username); err != nil {
 		log.Println("[ERR]: error saving certificate status", err.Error())
+		msg.NakWithDelay(5 * time.Minute)
 		return
 	}
 
