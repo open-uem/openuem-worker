@@ -50,8 +50,15 @@ func PrepareMessage(notification *openuem_nats.Notification, settings *openuem_e
 }
 
 func PrepareSMTPClient(settings *openuem_ent.Settings) (*mail.Client, error) {
-	c, err := mail.NewClient(settings.SMTPServer, mail.WithPort(settings.SMTPPort), mail.WithSMTPAuth(mail.SMTPAuthType(settings.SMTPAuth)),
-		mail.WithUsername(settings.SMTPUser), mail.WithPassword(settings.SMTPPassword))
+	var err error
+	var c *mail.Client
+	if settings.SMTPAuth == "NOAUTH" || (settings.SMTPUser == "" && settings.SMTPPassword == "") {
+		c, err = mail.NewClient(settings.SMTPServer, mail.WithPort(settings.SMTPPort))
+	} else {
+		c, err = mail.NewClient(settings.SMTPServer, mail.WithPort(settings.SMTPPort), mail.WithSMTPAuth(mail.SMTPAuthType(settings.SMTPAuth)),
+			mail.WithUsername(settings.SMTPUser), mail.WithPassword(settings.SMTPPassword))
+	}
+
 	if err != nil {
 		return nil, err
 	}
