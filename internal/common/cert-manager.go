@@ -155,12 +155,6 @@ func (w *Worker) RevokeCertificateHandler(msg *nats.Msg) {
 func (w *Worker) GenerateCertManagerWorkerConfig() error {
 	var err error
 
-	w.DBUrl, err = openuem_utils.CreatePostgresDatabaseURL()
-	if err != nil {
-		log.Printf("[ERROR]: %v", err)
-		return err
-	}
-
 	cwd, err := GetWd()
 	if err != nil {
 		log.Println("[ERROR]: could not get working directory")
@@ -173,6 +167,22 @@ func (w *Worker) GenerateCertManagerWorkerConfig() error {
 		return err
 	}
 	defer k.Close()
+
+	w.DatabaseType, err = openuem_utils.GetValueFromRegistry(k, "Database")
+	if err != nil {
+		log.Println("[ERROR]: could not read database type from registry")
+		return err
+	}
+
+	if w.DatabaseType == "SQLite" {
+		w.DBUrl = filepath.Join(cwd, "database", "openuem.db")
+	} else {
+		w.DBUrl, err = openuem_utils.CreatePostgresDatabaseURL()
+		if err != nil {
+			log.Printf("[ERROR]: %v", err)
+			return err
+		}
+	}
 
 	w.ClientCertPath = filepath.Join(cwd, "certificates", "cert-manager-worker", "worker.cer")
 	w.ClientKeyPath = filepath.Join(cwd, "certificates", "cert-manager-worker", "worker.key")

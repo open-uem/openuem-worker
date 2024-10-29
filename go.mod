@@ -16,6 +16,7 @@ require (
 	github.com/doncicuto/openuem_utils v0.0.0-00010101000000-000000000000
 	github.com/go-co-op/gocron/v2 v2.12.1
 	github.com/jackc/pgx/v5 v5.7.1
+	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/nats-io/nats.go v1.37.0
 	github.com/urfave/cli/v2 v2.27.4
 	github.com/wneessen/go-mail v0.4.4

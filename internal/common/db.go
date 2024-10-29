@@ -11,7 +11,7 @@ import (
 func (w *Worker) StartDBConnectJob() error {
 	var err error
 
-	w.Model, err = models.New(w.DBUrl)
+	w.Model, err = models.New(w.DatabaseType, w.DBUrl)
 	if err == nil {
 		log.Println("[INFO]: connection established with database")
 		return nil
@@ -25,7 +25,7 @@ func (w *Worker) StartDBConnectJob() error {
 		),
 		gocron.NewTask(
 			func() {
-				w.Model, err = models.New(w.DBUrl)
+				w.Model, err = models.New(w.DatabaseType, w.DBUrl)
 				if err != nil {
 					log.Printf("[ERROR]: could not connect with database %v", err)
 					return

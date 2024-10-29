@@ -17,6 +17,7 @@ type Worker struct {
 	NATSConnection *nats.Conn
 	NATSConnectJob gocron.Job
 	NATSServers    string
+	DatabaseType   string
 	DBUrl          string
 	DBConnectJob   gocron.Job
 	TaskScheduler  gocron.Scheduler
