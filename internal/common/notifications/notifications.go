@@ -46,6 +46,18 @@ func PrepareMessage(notification *openuem_nats.Notification, settings *openuem_e
 			return nil, fmt.Errorf("failed to attach file: %s", err.Error())
 		}
 	}
+
+	if notification.MessageAttachFileName2 != "" {
+		data, err := base64.StdEncoding.DecodeString(notification.MessageAttachFile2)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode file content: %s", err.Error())
+		}
+		reader := bytes.NewReader(data)
+		err = m.AttachReader(notification.MessageAttachFileName2, reader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to attach file: %s", err.Error())
+		}
+	}
 	return m, nil
 }
 

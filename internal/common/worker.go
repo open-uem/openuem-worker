@@ -32,6 +32,7 @@ type Worker struct {
 	CertRequest    *openuem_nats.CertificateRequest
 	Settings       *openuem_ent.Settings
 	Logger         *openuem_utils.OpenUEMLogger
+	ConsoleURL     string
 	OCSPResponders []string
 }
 

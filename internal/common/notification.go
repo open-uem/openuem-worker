@@ -1,9 +1,7 @@
 package common
 
 import (
-	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 
@@ -11,29 +9,6 @@ import (
 	"github.com/doncicuto/openuem_nats"
 	"github.com/nats-io/nats.go"
 )
-
-func (w *Worker) SendNotification() error {
-	notification := openuem_nats.Notification{
-		To:                    w.CertRequest.Email,
-		Subject:               "Your certificate to log in to OpenUEM console",
-		MessageTitle:          "OpenUEM | Your certificate",
-		MessageText:           "You can find attached the digital certificate that you must import to your browser so you can use it to log in to the OpenUEM console",
-		MessageGreeting:       fmt.Sprintf("Hi %s", w.CertRequest.FullName),
-		MessageAttachFileName: w.CertRequest.Username + ".pfx",
-		MessageAttachFile:     base64.StdEncoding.EncodeToString(w.PKCS12),
-	}
-
-	data, err := json.Marshal(notification)
-	if err != nil {
-		return err
-	}
-
-	if err := w.NATSConnection.Publish("notification.send_certificate", data); err != nil {
-		return err
-	}
-
-	return nil
-}
 
 func (w *Worker) SendConfirmEmailHandler(msg *nats.Msg) {
 	notification := openuem_nats.Notification{}
