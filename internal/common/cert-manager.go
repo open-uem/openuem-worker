@@ -168,26 +168,22 @@ func (w *Worker) GenerateCertManagerWorkerConfig() error {
 	}
 	defer k.Close()
 
-	w.DatabaseType, err = openuem_utils.GetValueFromRegistry(k, "Database")
+	w.DBUrl, err = openuem_utils.CreatePostgresDatabaseURL()
 	if err != nil {
-		log.Println("[ERROR]: could not read database type from registry")
+		log.Printf("[ERROR]: %v", err)
 		return err
-	}
-
-	if w.DatabaseType == "SQLite" {
-		w.DBUrl = filepath.Join(cwd, "database", "openuem.db")
-	} else {
-		w.DBUrl, err = openuem_utils.CreatePostgresDatabaseURL()
-		if err != nil {
-			log.Printf("[ERROR]: %v", err)
-			return err
-		}
 	}
 
 	w.ClientCertPath = filepath.Join(cwd, "certificates", "cert-manager-worker", "worker.cer")
 	w.ClientKeyPath = filepath.Join(cwd, "certificates", "cert-manager-worker", "worker.key")
 	w.CACertPath = filepath.Join(cwd, "certificates", "ca", "ca.cer")
 	w.CAKeyPath = filepath.Join(cwd, "certificates", "ca", "ca.key")
+
+	w.DatabaseType, err = openuem_utils.GetValueFromRegistry(k, "Database")
+	if err != nil {
+		log.Println("[ERROR]: could not read database type from registry")
+		return err
+	}
 
 	w.NATSServers, err = openuem_utils.GetValueFromRegistry(k, "NATSServers")
 	if err != nil {
