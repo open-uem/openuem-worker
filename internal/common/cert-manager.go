@@ -108,46 +108,46 @@ func (w *Worker) NewCertificateHandler(msg *nats.Msg) {
 	// Read message
 	cr := openuem_nats.CertificateRequest{}
 	if err := json.Unmarshal(msg.Data, &cr); err != nil {
-		log.Printf("[ERR]: could not unmarshall new certificate request, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not unmarshall new certificate request, reason: %s", err.Error())
 		msg.NakWithDelay(5 * time.Minute)
 		return
 	}
 	w.CertRequest = &cr
 
 	if err := w.GenerateUserCertificate(); err != nil {
-		log.Printf("[ERR]: could not generate the user certificate, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not generate the user certificate, reason: %s", err.Error())
 		msg.NakWithDelay(5 * time.Minute)
 		return
 	}
 
 	if err := w.SendCertificate(); err != nil {
-		log.Printf("[ERR]: could not send the user certificate, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not send the user certificate, reason: %s", err.Error())
 		msg.NakWithDelay(5 * time.Minute)
 		return
 	}
 
 	certDescription := w.CertRequest.Username + " client certificate"
 	if err := w.Model.SaveCertificate(w.UserCert.SerialNumber.Int64(), certificate.Type("user"), w.CertRequest.Username, certDescription, w.UserCert.NotAfter); err != nil {
-		log.Println("[ERR]: error saving certificate status", err.Error())
+		log.Println("[ERROR]: error saving certificate status", err.Error())
 		msg.NakWithDelay(5 * time.Minute)
 		return
 	}
 
 	if err := w.Model.SetCertificateSent(w.CertRequest.Username); err != nil {
-		log.Println("[ERR]: error saving certificate status", err.Error())
+		log.Println("[ERROR]: error saving certificate status", err.Error())
 		msg.NakWithDelay(5 * time.Minute)
 		return
 	}
 
 	if err := msg.Respond([]byte("New certificate has been processed")); err != nil {
-		log.Println("[ERR]: could not sent response", err.Error())
+		log.Println("[ERROR]: could not sent response", err.Error())
 		return
 	}
 }
 
 func (w *Worker) RevokeCertificateHandler(msg *nats.Msg) {
 	if err := msg.Respond([]byte("Certificate has been revoked!")); err != nil {
-		log.Println("[ERR]: could not send response", err.Error())
+		log.Println("[ERROR]: could not send response", err.Error())
 		return
 	}
 }
@@ -178,12 +178,6 @@ func (w *Worker) GenerateCertManagerWorkerConfig() error {
 	w.ClientKeyPath = filepath.Join(cwd, "certificates", "cert-manager-worker", "worker.key")
 	w.CACertPath = filepath.Join(cwd, "certificates", "ca", "ca.cer")
 	w.CAKeyPath = filepath.Join(cwd, "certificates", "ca", "ca.key")
-
-	w.DatabaseType, err = openuem_utils.GetValueFromRegistry(k, "Database")
-	if err != nil {
-		log.Println("[ERROR]: could not read database type from registry")
-		return err
-	}
 
 	w.NATSServers, err = openuem_utils.GetValueFromRegistry(k, "NATSServers")
 	if err != nil {

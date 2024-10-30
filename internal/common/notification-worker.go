@@ -4,6 +4,7 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/doncicuto/openuem_ent"
 	"github.com/doncicuto/openuem_utils"
 	"golang.org/x/sys/windows/registry"
 )
@@ -14,8 +15,12 @@ func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 	// read SMTP settings from database
 	w.Settings, err = w.Model.GetSettings()
 	if err != nil {
-		log.Printf("[ERROR]: could not get settings from DB, reason: %s", err.Error())
-		return err
+		if openuem_ent.IsNotFound(err) {
+			log.Println("[INFO]: no SMTP settings found")
+		} else {
+			log.Printf("[ERROR]: could not get settings from DB, reason: %s", err.Error())
+			return err
+		}
 	}
 
 	_, err = w.NATSConnection.Subscribe("notification.confirm_email", w.SendConfirmEmailHandler)
@@ -31,6 +36,13 @@ func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 		return err
 	}
 	log.Println("[INFO]: subscribed to queue notification.send_certificate")
+
+	_, err = w.NATSConnection.Subscribe("notification.reload_settings", w.ReloadSettingsHandler)
+	if err != nil {
+		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %s", err.Error())
+		return err
+	}
+	log.Println("[INFO]: subscribed to queue notification.reload_setting")
 
 	return nil
 }
@@ -61,12 +73,6 @@ func (w *Worker) GenerateNotificationWorkerConfig() error {
 	w.ClientKeyPath = filepath.Join(cwd, "certificates", "notification-worker", "worker.key")
 	w.CACertPath = filepath.Join(cwd, "certificates", "ca", "ca.cer")
 	w.CAKeyPath = filepath.Join(cwd, "certificates", "ca", "ca.key")
-
-	w.DatabaseType, err = openuem_utils.GetValueFromRegistry(k, "Database")
-	if err != nil {
-		log.Println("[ERROR]: could not read database type from registry")
-		return err
-	}
 
 	w.NATSServers, err = openuem_utils.GetValueFromRegistry(k, "NATSServers")
 	if err != nil {

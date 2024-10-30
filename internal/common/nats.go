@@ -20,24 +20,25 @@ func (w *Worker) StartNATSConnectJob(queueSubscribe func() error) error {
 	}
 	log.Printf("[ERROR]: could not connect to NATS %v", err)
 
-	// Create task for running the agent
 	w.NATSConnectJob, err = w.TaskScheduler.NewJob(
 		gocron.DurationJob(
 			time.Duration(time.Duration(2*time.Minute)),
 		),
 		gocron.NewTask(
 			func() {
-				w.NATSConnection, err = openuem_nats.ConnectWithNATS(w.NATSServers, w.ClientCertPath, w.ClientKeyPath, w.CACertPath)
-				if err != nil {
-					log.Printf("[ERROR]: could not connect to NATS %v", err)
+				if w.NATSConnection == nil {
+					w.NATSConnection, err = openuem_nats.ConnectWithNATS(w.NATSServers, w.ClientCertPath, w.ClientKeyPath, w.CACertPath)
+					if err != nil {
+						log.Printf("[ERROR]: could not connect to NATS %v", err)
+						return
+					}
+				}
+
+				if err := queueSubscribe(); err != nil {
 					return
 				}
 
 				if err := w.TaskScheduler.RemoveJob(w.NATSConnectJob.ID()); err != nil {
-					return
-				}
-
-				if err := queueSubscribe(); err != nil {
 					return
 				}
 			},
