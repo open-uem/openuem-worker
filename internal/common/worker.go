@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"crypto/rsa"
 	"crypto/x509"
 	"log"
@@ -14,27 +15,28 @@ import (
 )
 
 type Worker struct {
-	NATSConnection *nats.Conn
-	NATSConnectJob gocron.Job
-	NATSServers    string
-	DatabaseType   string
-	DBUrl          string
-	DBConnectJob   gocron.Job
-	TaskScheduler  gocron.Scheduler
-	Model          *models.Model
-	CACert         *x509.Certificate
-	CAPrivateKey   *rsa.PrivateKey
-	ClientCertPath string
-	ClientKeyPath  string
-	CACertPath     string
-	CAKeyPath      string
-	PKCS12         []byte
-	UserCert       *x509.Certificate
-	CertRequest    *openuem_nats.CertificateRequest
-	Settings       *openuem_ent.Settings
-	Logger         *openuem_utils.OpenUEMLogger
-	ConsoleURL     string
-	OCSPResponders []string
+	NATSConnection         *nats.Conn
+	NATSConnectJob         gocron.Job
+	NATSServers            string
+	DatabaseType           string
+	DBUrl                  string
+	DBConnectJob           gocron.Job
+	TaskScheduler          gocron.Scheduler
+	Model                  *models.Model
+	CACert                 *x509.Certificate
+	CAPrivateKey           *rsa.PrivateKey
+	ClientCertPath         string
+	ClientKeyPath          string
+	CACertPath             string
+	CAKeyPath              string
+	PKCS12                 []byte
+	UserCert               *x509.Certificate
+	CertRequest            *openuem_nats.CertificateRequest
+	Settings               *openuem_ent.Settings
+	Logger                 *openuem_utils.OpenUEMLogger
+	ConsoleURL             string
+	OCSPResponders         []string
+	JetstreamContextCancel context.CancelFunc
 }
 
 func NewWorker(logName string) *Worker {
@@ -78,5 +80,8 @@ func (w *Worker) StopWorker() {
 	w.Logger.Close()
 	if err := w.TaskScheduler.Shutdown(); err != nil {
 		log.Printf("[ERROR]: could not stop the task scheduler, reason: %s", err.Error())
+	}
+	if w.JetstreamContextCancel != nil {
+		w.JetstreamContextCancel()
 	}
 }

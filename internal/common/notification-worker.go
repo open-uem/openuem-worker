@@ -1,16 +1,26 @@
 package common
 
 import (
+	"context"
 	"log"
 	"path/filepath"
+	"time"
 
 	"github.com/doncicuto/openuem_ent"
 	"github.com/doncicuto/openuem_utils"
+	"github.com/nats-io/nats.go/jetstream"
 	"golang.org/x/sys/windows/registry"
 )
 
 func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 	var err error
+	var ctx context.Context
+
+	js, err := jetstream.New(w.NATSConnection)
+	if err != nil {
+		log.Printf("[ERROR]: could not intantiate JetStream: %s", err.Error())
+		return err
+	}
 
 	// read SMTP settings from database
 	w.Settings, err = w.Model.GetSettings()
@@ -23,19 +33,33 @@ func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 		}
 	}
 
-	_, err = w.NATSConnection.Subscribe("notification.confirm_email", w.SendConfirmEmailHandler)
+	ctx, w.JetstreamContextCancel = context.WithTimeout(context.Background(), 60*time.Minute)
+	s, err := js.CreateStream(ctx, jetstream.StreamConfig{
+		Name:     "NOTIFICATION_STREAM",
+		Subjects: []string{"notification.confirm_email", "notification.send_certificate"},
+	})
 	if err != nil {
-		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not create stream: %s", err.Error())
 		return err
 	}
-	log.Println("[INFO]: subscribed to queue notification.confirm_email")
 
-	_, err = w.NATSConnection.Subscribe("notification.send_certificate", w.SendUserCertificateHandler)
+	c1, err := s.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
+		Durable:   "NotificationsConsumer",
+		AckPolicy: jetstream.AckExplicitPolicy,
+	})
 	if err != nil {
-		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not create Jetstream consumer: %s", err.Error())
 		return err
 	}
-	log.Println("[INFO]: subscribed to queue notification.send_certificate")
+	// TODO stop consume context ()
+	_, err = c1.Consume(w.JetStreamNotificationsHandler, jetstream.ConsumeErrHandler(func(consumeCtx jetstream.ConsumeContext, err error) {
+		log.Printf("[ERROR]: consumer error: %s", err.Error())
+	}))
+	if err != nil {
+		log.Printf("[ERROR]: could not start Notifications consumer: %s", err.Error())
+		return err
+	}
+	log.Println("[INFO]: Notifications consumer is ready to serve")
 
 	_, err = w.NATSConnection.Subscribe("notification.reload_settings", w.ReloadSettingsHandler)
 	if err != nil {

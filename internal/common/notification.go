@@ -9,9 +9,20 @@ import (
 	"github.com/doncicuto/openuem_ent"
 	"github.com/doncicuto/openuem_nats"
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 )
 
-func (w *Worker) SendConfirmEmailHandler(msg *nats.Msg) {
+func (w *Worker) JetStreamNotificationsHandler(msg jetstream.Msg) {
+	if msg.Subject() == "notification.confirm_email" {
+		w.JetStreamSendConfirmEmailHandler(msg)
+	}
+
+	if msg.Subject() == "notification.send_certificate" {
+		w.JetStreamSendUserCertificateHandler(msg)
+	}
+}
+
+func (w *Worker) JetStreamSendConfirmEmailHandler(msg jetstream.Msg) {
 	notification := openuem_nats.Notification{}
 
 	if w.Settings == nil {
@@ -20,7 +31,7 @@ func (w *Worker) SendConfirmEmailHandler(msg *nats.Msg) {
 		return
 	}
 
-	err := json.Unmarshal(msg.Data, &notification)
+	err := json.Unmarshal(msg.Data(), &notification)
 	if err != nil {
 		log.Printf("[ERROR]: could not unmarshal notification request, reason: %v", err.Error())
 		msg.NakWithDelay(5 * time.Minute)
@@ -46,13 +57,13 @@ func (w *Worker) SendConfirmEmailHandler(msg *nats.Msg) {
 		return
 	}
 
-	if err := msg.Respond([]byte("Confirmation email has been sent!")); err != nil {
-		log.Printf("[ERROR]: could not sent response, reason: %v", err.Error())
+	if err := msg.Ack(); err != nil {
+		log.Printf("[ERROR]: could not sent ACK, reason: %v", err.Error())
 		return
 	}
 }
 
-func (w *Worker) SendUserCertificateHandler(msg *nats.Msg) {
+func (w *Worker) JetStreamSendUserCertificateHandler(msg jetstream.Msg) {
 	notification := openuem_nats.Notification{}
 
 	if w.Settings == nil {
@@ -61,7 +72,7 @@ func (w *Worker) SendUserCertificateHandler(msg *nats.Msg) {
 		return
 	}
 
-	if err := json.Unmarshal(msg.Data, &notification); err != nil {
+	if err := json.Unmarshal(msg.Data(), &notification); err != nil {
 		log.Printf("[ERROR]: could not unmarshal notification request, reason: %v", err.Error())
 		msg.NakWithDelay(5 * time.Minute)
 		return
@@ -88,7 +99,7 @@ func (w *Worker) SendUserCertificateHandler(msg *nats.Msg) {
 		return
 	}
 
-	if err := msg.Respond([]byte("User certificate has been sent!")); err != nil {
+	if err := msg.Ack(); err != nil {
 		log.Printf("[ERROR]: could not sent response, reason: %v", err.Error())
 		return
 	}
