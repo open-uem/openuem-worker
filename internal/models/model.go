@@ -16,7 +16,7 @@ type Model struct {
 	Client *ent.Client
 }
 
-func New(databaseType, dbUrl string) (*Model, error) {
+func New(dbUrl string) (*Model, error) {
 	model := Model{}
 
 	db, err := sql.Open("pgx", dbUrl)
