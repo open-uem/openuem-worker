@@ -13,5 +13,10 @@ func (m *Model) SaveCertificate(serial int64, certType certificate.Type, uid, de
 	if err != nil {
 		return err
 	}
+
+	if _, err := m.Client.User.UpdateOneID(uid).SetExpiry(expiry).Save(context.Background()); err != nil {
+		return err
+	}
+
 	return nil
 }

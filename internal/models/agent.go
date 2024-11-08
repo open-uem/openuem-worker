@@ -72,6 +72,7 @@ func (m *Model) SaveComputerInfo(data *openuem_nats.AgentReport) error {
 func (m *Model) SaveOSInfo(data *openuem_nats.AgentReport) error {
 	return m.Client.OperatingSystem.
 		Create().
+		SetType(data.OS).
 		SetVersion(data.OperatingSystem.Version).
 		SetDescription(data.OperatingSystem.Description).
 		SetEdition(data.OperatingSystem.Edition).
