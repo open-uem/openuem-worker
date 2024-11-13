@@ -35,7 +35,10 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 		SetEnabled(true).
 		SetIP(data.IP).
 		SetMAC(data.MACAddress).
-		SetVnc(data.SupportedVNCServer)
+		SetVnc(data.SupportedVNCServer).
+		SetUpdateTaskExecution(data.LastUpdateTaskExecutionTime).
+		SetUpdateTaskResult(data.LastUpdateTaskResult).
+		SetUpdateTaskStatus(data.LastUpdateTaskStatus)
 
 	if exists {
 		return query.
