@@ -52,7 +52,7 @@ func (w *Worker) StartWorker(subscription func() error) {
 	// Start Task Scheduler
 	w.TaskScheduler, err = gocron.NewScheduler()
 	if err != nil {
-		log.Printf("[ERROR]: could not create task scheduler, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not create task scheduler, reason: %v", err)
 		return
 	}
 	w.TaskScheduler.Start()
@@ -60,27 +60,33 @@ func (w *Worker) StartWorker(subscription func() error) {
 
 	// Start a job to try to connect with the database
 	if err := w.StartDBConnectJob(); err != nil {
-		log.Printf("[ERROR]: could not start DB connect job, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not start DB connect job, reason: %v", err)
 		return
 	}
 
 	// Start a job to try to connect with NATS
 	if err := w.StartNATSConnectJob(subscription); err != nil {
-		log.Printf("[ERROR]: could not start NATS connect job, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not start NATS connect job, reason: %v", err)
 		return
 	}
 }
 
 func (w *Worker) StopWorker() {
 	if err := w.NATSConnection.Drain(); err != nil {
-		log.Printf("[ERROR]: could not drain NATS connection, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not drain NATS connection, reason: %v", err)
 	}
 	w.Model.Close()
 	w.Logger.Close()
 	if err := w.TaskScheduler.Shutdown(); err != nil {
-		log.Printf("[ERROR]: could not stop the task scheduler, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not stop the task scheduler, reason: %v", err)
 	}
 	if w.JetstreamContextCancel != nil {
 		w.JetstreamContextCancel()
+	}
+}
+
+func (w *Worker) PingHandler(msg *nats.Msg) {
+	if err := msg.Respond(nil); err != nil {
+		log.Printf("[ERROR]: could not respond to ping message, reason: %v", err)
 	}
 }

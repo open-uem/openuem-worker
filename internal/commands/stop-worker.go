@@ -34,7 +34,7 @@ func stopWorker(cCtx *cli.Context) error {
 	}
 
 	if err := p.Signal(os.Interrupt); err != nil {
-		return fmt.Errorf("could not terminate the process associated with the worker, reason: %s", err.Error())
+		return fmt.Errorf("could not terminate the process associated with the worker, reason: %v", err)
 	}
 
 	log.Printf("👋 Done! Your worker has stopped listening\n\n")

@@ -18,7 +18,7 @@ func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 
 	js, err := jetstream.New(w.NATSConnection)
 	if err != nil {
-		log.Printf("[ERROR]: could not intantiate JetStream: %s", err.Error())
+		log.Printf("[ERROR]: could not intantiate JetStream: %v", err)
 		return err
 	}
 
@@ -28,7 +28,7 @@ func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 		if openuem_ent.IsNotFound(err) {
 			log.Println("[INFO]: no SMTP settings found")
 		} else {
-			log.Printf("[ERROR]: could not get settings from DB, reason: %s", err.Error())
+			log.Printf("[ERROR]: could not get settings from DB, reason: %v", err)
 			return err
 		}
 	}
@@ -39,7 +39,7 @@ func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 		Subjects: []string{"notification.confirm_email", "notification.send_certificate"},
 	})
 	if err != nil {
-		log.Printf("[ERROR]: could not create stream: %s", err.Error())
+		log.Printf("[ERROR]: could not create stream: %v", err)
 		return err
 	}
 
@@ -48,25 +48,32 @@ func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 		AckPolicy: jetstream.AckExplicitPolicy,
 	})
 	if err != nil {
-		log.Printf("[ERROR]: could not create Jetstream consumer: %s", err.Error())
+		log.Printf("[ERROR]: could not create Jetstream consumer: %v", err)
 		return err
 	}
 	// TODO stop consume context ()
 	_, err = c1.Consume(w.JetStreamNotificationsHandler, jetstream.ConsumeErrHandler(func(consumeCtx jetstream.ConsumeContext, err error) {
-		log.Printf("[ERROR]: consumer error: %s", err.Error())
+		log.Printf("[ERROR]: consumer error: %v", err)
 	}))
 	if err != nil {
-		log.Printf("[ERROR]: could not start Notifications consumer: %s", err.Error())
+		log.Printf("[ERROR]: could not start Notifications consumer: %v", err)
 		return err
 	}
 	log.Println("[INFO]: Notifications consumer is ready to serve")
 
 	_, err = w.NATSConnection.Subscribe("notification.reload_settings", w.ReloadSettingsHandler)
 	if err != nil {
-		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
 		return err
 	}
 	log.Println("[INFO]: subscribed to queue notification.reload_setting")
+
+	_, err = w.NATSConnection.QueueSubscribe("ping.notificationworker", "openuem-notification", w.PingHandler)
+	if err != nil {
+		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
+		return err
+	}
+	log.Printf("[INFO]: subscribed to queue ping")
 
 	return nil
 }

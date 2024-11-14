@@ -27,18 +27,24 @@ import (
 func (w *Worker) SubscribeToCertManagerWorkerQueues() error {
 	_, err := w.NATSConnection.Subscribe("certificates.new", w.NewCertificateHandler)
 	if err != nil {
-		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
 		return err
 	}
 	log.Println("[INFO]: subscribed to queue certificates.new")
 
 	_, err = w.NATSConnection.Subscribe("certificates.revoke", w.RevokeCertificateHandler)
 	if err != nil {
-		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
 		return err
 	}
 	log.Println("[INFO]: subscribed to queue certificates.revoke")
 
+	_, err = w.NATSConnection.QueueSubscribe("ping.certmanagerworker", "openuem-cert-manager", w.PingHandler)
+	if err != nil {
+		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
+		return err
+	}
+	log.Printf("[INFO]: subscribed to queue ping")
 	return nil
 }
 
@@ -108,20 +114,20 @@ func (w *Worker) NewCertificateHandler(msg *nats.Msg) {
 	// Read message
 	cr := openuem_nats.CertificateRequest{}
 	if err := json.Unmarshal(msg.Data, &cr); err != nil {
-		log.Printf("[ERROR]: could not unmarshall new certificate request, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not unmarshall new certificate request, reason: %v", err)
 		msg.NakWithDelay(5 * time.Minute)
 		return
 	}
 	w.CertRequest = &cr
 
 	if err := w.GenerateUserCertificate(); err != nil {
-		log.Printf("[ERROR]: could not generate the user certificate, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not generate the user certificate, reason: %v", err)
 		msg.NakWithDelay(5 * time.Minute)
 		return
 	}
 
 	if err := w.SendCertificate(); err != nil {
-		log.Printf("[ERROR]: could not send the user certificate, reason: %s", err.Error())
+		log.Printf("[ERROR]: could not send the user certificate, reason: %v", err)
 		msg.NakWithDelay(5 * time.Minute)
 		return
 	}

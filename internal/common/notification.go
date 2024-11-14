@@ -113,7 +113,7 @@ func (w *Worker) ReloadSettingsHandler(msg *nats.Msg) {
 		if openuem_ent.IsNotFound(err) {
 			log.Println("[INFO]: no SMTP settings found")
 		} else {
-			log.Printf("[ERROR]: could not get settings from DB, reason: %s", err.Error())
+			log.Printf("[ERROR]: could not get settings from DB, reason: %v", err)
 			return
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/doncicuto/openuem_ent"
 	"github.com/doncicuto/openuem_ent/agent"
 	"github.com/doncicuto/openuem_ent/antivirus"
 	"github.com/doncicuto/openuem_ent/app"
@@ -22,8 +23,13 @@ import (
 
 func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 	ctx := context.Background()
-	exists, err := m.Client.Agent.Query().Where(agent.ID(data.AgentID)).Exist(ctx)
+
+	exists := true
+	existingAgent, err := m.Client.Agent.Query().Where(agent.ID(data.AgentID)).First(ctx)
 	if err != nil {
+		if openuem_ent.IsNotFound(err) {
+			exists = false
+		}
 		return err
 	}
 
@@ -36,6 +42,8 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 		SetIP(data.IP).
 		SetMAC(data.MACAddress).
 		SetVnc(data.SupportedVNCServer).
+		SetUpdateTaskVersion(existingAgent.UpdateTaskVersion).
+		SetUpdateTaskDescription(existingAgent.UpdateTaskDescription).
 		SetUpdateTaskExecution(data.LastUpdateTaskExecutionTime).
 		SetUpdateTaskResult(data.LastUpdateTaskResult).
 		SetUpdateTaskStatus(data.LastUpdateTaskStatus)
@@ -124,7 +132,7 @@ func (m *Model) SaveAppsInfo(data *openuem_nats.AgentReport) error {
 
 	_, err = tx.App.Delete().Where(app.HasOwnerWith(agent.ID(data.AgentID))).Exec(ctx)
 	if err != nil {
-		log.Printf("could not delete previous apps information: %s", err.Error())
+		log.Printf("could not delete previous apps information: %v", err)
 		return tx.Rollback()
 	}
 
@@ -154,7 +162,7 @@ func (m *Model) SaveMonitorsInfo(data *openuem_nats.AgentReport) error {
 
 	_, err = tx.Monitor.Delete().Where(monitor.HasOwnerWith(agent.ID(data.AgentID))).Exec(ctx)
 	if err != nil {
-		log.Printf("could not delete previous monitors information: %s", err.Error())
+		log.Printf("could not delete previous monitors information: %v", err)
 		return tx.Rollback()
 	}
 
@@ -183,7 +191,7 @@ func (m *Model) SaveLogicalDisksInfo(data *openuem_nats.AgentReport) error {
 
 	_, err = tx.LogicalDisk.Delete().Where(logicaldisk.HasOwnerWith(agent.ID(data.AgentID))).Exec(ctx)
 	if err != nil {
-		log.Printf("could not delete previous logical disks information: %s", err.Error())
+		log.Printf("could not delete previous logical disks information: %v", err)
 		return tx.Rollback()
 	}
 
@@ -215,7 +223,7 @@ func (m *Model) SavePrintersInfo(data *openuem_nats.AgentReport) error {
 
 	_, err = tx.Printer.Delete().Where(printer.HasOwnerWith(agent.ID(data.AgentID))).Exec(ctx)
 	if err != nil {
-		log.Printf("could not delete previous printers information: %s", err.Error())
+		log.Printf("could not delete previous printers information: %v", err)
 		return tx.Rollback()
 	}
 
@@ -245,7 +253,7 @@ func (m *Model) SaveNetworkAdaptersInfo(data *openuem_nats.AgentReport) error {
 
 	_, err = tx.NetworkAdapter.Delete().Where(networkadapter.HasOwnerWith(agent.ID(data.AgentID))).Exec(ctx)
 	if err != nil {
-		log.Printf("could not delete previous network adapters information: %s", err.Error())
+		log.Printf("could not delete previous network adapters information: %v", err)
 		return tx.Rollback()
 	}
 
@@ -282,7 +290,7 @@ func (m *Model) SaveSharesInfo(data *openuem_nats.AgentReport) error {
 
 	_, err = tx.Share.Delete().Where(share.HasOwnerWith(agent.ID(data.AgentID))).Exec(ctx)
 	if err != nil {
-		log.Printf("could not delete previous shares information: %s", err.Error())
+		log.Printf("could not delete previous shares information: %v", err)
 		return tx.Rollback()
 	}
 
@@ -311,7 +319,7 @@ func (m *Model) SaveUpdatesInfo(data *openuem_nats.AgentReport) error {
 
 	_, err = tx.Update.Delete().Where(update.HasOwnerWith(agent.ID(data.AgentID))).Exec(ctx)
 	if err != nil {
-		log.Printf("could not delete previous updates information: %s", err.Error())
+		log.Printf("could not delete previous updates information: %v", err)
 		return tx.Rollback()
 	}
 
