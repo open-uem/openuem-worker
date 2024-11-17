@@ -18,7 +18,7 @@ func (w *Worker) StartNATSConnectJob(queueSubscribe func() error) error {
 		}
 		return nil
 	}
-	log.Printf("[ERROR]: could not connect to NATS %v", err)
+	log.Printf("[ERROR]: could not connect to NATS servers in %s, reason: %v\n", w.NATSServers, err)
 
 	w.NATSConnectJob, err = w.TaskScheduler.NewJob(
 		gocron.DurationJob(

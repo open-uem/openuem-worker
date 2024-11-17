@@ -1,2 +1,5 @@
 *.exe
 logs
+openuem-agent-worker
+openuem-notification-worker
+openuem-cert-manager-worker

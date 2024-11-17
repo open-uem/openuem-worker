@@ -3,12 +3,9 @@ package common
 import (
 	"encoding/json"
 	"log"
-	"path/filepath"
 
 	"github.com/doncicuto/openuem_nats"
-	"github.com/doncicuto/openuem_utils"
 	"github.com/nats-io/nats.go"
-	"golang.org/x/sys/windows/registry"
 )
 
 func (w *Worker) SubscribeToAgentWorkerQueues() error {
@@ -114,39 +111,4 @@ func (w *Worker) DeployResultReceivedHandler(msg *nats.Msg) {
 	if err := msg.Respond([]byte("")); err != nil {
 		log.Printf("[ERROR]: could not respond to deploy message, reason: %s\n", err.Error())
 	}
-}
-
-func (w *Worker) GenerateAgentWorkerConfig() error {
-	var err error
-
-	cwd, err := GetWd()
-	if err != nil {
-		log.Println("[ERROR]: could not get working directory")
-		return err
-	}
-
-	w.DBUrl, err = openuem_utils.CreatePostgresDatabaseURL()
-	if err != nil {
-		log.Printf("[ERROR]: %v", err)
-		return err
-	}
-
-	w.ClientCertPath = filepath.Join(cwd, "certificates", "agents-worker", "worker.cer")
-	w.ClientKeyPath = filepath.Join(cwd, "certificates", "agents-worker", "worker.key")
-	w.CACertPath = filepath.Join(cwd, "certificates", "ca", "ca.cer")
-
-	k, err := openuem_utils.OpenRegistryForQuery(registry.LOCAL_MACHINE, `SOFTWARE\OpenUEM\Server`)
-	if err != nil {
-		log.Println("[ERROR]: could not open registry")
-		return err
-	}
-	defer k.Close()
-
-	w.NATSServers, err = openuem_utils.GetValueFromRegistry(k, "NATSServers")
-	if err != nil {
-		log.Println("[ERROR]: could not read NATS servers from registry")
-		return err
-	}
-
-	return nil
 }

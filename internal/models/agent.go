@@ -27,10 +27,11 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 	exists := true
 	existingAgent, err := m.Client.Agent.Query().Where(agent.ID(data.AgentID)).First(ctx)
 	if err != nil {
-		if openuem_ent.IsNotFound(err) {
+		if !openuem_ent.IsNotFound(err) {
+			return err
+		} else {
 			exists = false
 		}
-		return err
 	}
 
 	query := m.Client.Agent.Create().
@@ -42,11 +43,13 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 		SetIP(data.IP).
 		SetMAC(data.MACAddress).
 		SetVnc(data.SupportedVNCServer).
-		SetUpdateTaskVersion(existingAgent.UpdateTaskVersion).
-		SetUpdateTaskDescription(existingAgent.UpdateTaskDescription).
 		SetUpdateTaskExecution(data.LastUpdateTaskExecutionTime).
 		SetUpdateTaskResult(data.LastUpdateTaskResult).
 		SetUpdateTaskStatus(data.LastUpdateTaskStatus)
+
+	if exists {
+		query.SetUpdateTaskVersion(existingAgent.UpdateTaskVersion).SetUpdateTaskDescription(existingAgent.UpdateTaskDescription)
+	}
 
 	if exists {
 		return query.

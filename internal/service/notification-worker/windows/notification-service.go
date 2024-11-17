@@ -1,3 +1,5 @@
+//go:build windows
+
 package main
 
 import (
@@ -9,19 +11,19 @@ import (
 )
 
 func main() {
-	w := common.NewWorker("openuem-cert-manager-worker.txt")
+	w := common.NewWorker("openuem-notification-worker.txt")
 	s := openuem_utils.NewOpenUEMWindowsService()
 
 	// Get config for service
-	if err := w.GenerateCertManagerWorkerConfig(); err != nil {
-		log.Printf("[ERROR]: could not generate config for cert-manager worker: %v", err)
+	if err := w.GenerateNotificationWorkerConfig(); err != nil {
+		log.Printf("[ERROR]: could not generate config for notification worker: %v", err)
 	}
 
-	s.ServiceStart = func() { w.StartWorker(w.SubscribeToCertManagerWorkerQueues) }
+	s.ServiceStart = func() { w.StartWorker(w.SubscribeToNotificationWorkerQueues) }
 	s.ServiceStop = w.StopWorker
 
 	// Run service
-	err := svc.Run("openuem-cert-manager-worker", s)
+	err := svc.Run("openuem-notification-worker", s)
 	if err != nil {
 		log.Printf("[ERROR]: could not run service: %v", err)
 	}

@@ -72,16 +72,29 @@ func (w *Worker) StartWorker(subscription func() error) {
 }
 
 func (w *Worker) StopWorker() {
-	if err := w.NATSConnection.Drain(); err != nil {
-		log.Printf("[ERROR]: could not drain NATS connection, reason: %v", err)
+	if w.NATSConnection != nil {
+		if err := w.NATSConnection.Drain(); err != nil {
+			log.Printf("[ERROR]: could not drain NATS connection, reason: %v", err)
+		}
+		if w.JetstreamContextCancel != nil {
+			w.JetstreamContextCancel()
+		}
 	}
-	w.Model.Close()
-	w.Logger.Close()
-	if err := w.TaskScheduler.Shutdown(); err != nil {
-		log.Printf("[ERROR]: could not stop the task scheduler, reason: %v", err)
+
+	if w.Model != nil {
+		w.Model.Close()
 	}
-	if w.JetstreamContextCancel != nil {
-		w.JetstreamContextCancel()
+
+	if w.TaskScheduler != nil {
+		if err := w.TaskScheduler.Shutdown(); err != nil {
+			log.Printf("[ERROR]: could not stop the task scheduler, reason: %v", err)
+		}
+	}
+
+	log.Println("[INFO]: the worker has stopped")
+
+	if w.Logger != nil {
+		w.Logger.Close()
 	}
 }
 
