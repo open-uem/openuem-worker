@@ -52,7 +52,7 @@ func (w *Worker) StartWorker(subscription func() error) {
 	// Start Task Scheduler
 	w.TaskScheduler, err = gocron.NewScheduler()
 	if err != nil {
-		log.Printf("[ERROR]: could not create task scheduler, reason: %v", err)
+		log.Fatalf("[FATAL]: could not create task scheduler, reason: %v", err)
 		return
 	}
 	w.TaskScheduler.Start()
