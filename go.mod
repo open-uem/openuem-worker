@@ -20,6 +20,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.5
 	github.com/wneessen/go-mail v0.4.4
 	golang.org/x/sys v0.26.0
+	gopkg.in/ini.v1 v1.67.0
 	software.sslmate.com/src/go-pkcs12 v0.5.0
 )
 
@@ -51,5 +52,4 @@ require (
 	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
-	gopkg.in/ini.v1 v1.67.0 // indirect
 )

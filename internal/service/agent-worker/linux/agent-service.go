@@ -1,4 +1,4 @@
-//go:cmd linux
+//go:build linux
 
 package main
 
