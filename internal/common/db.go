@@ -8,12 +8,17 @@ import (
 	"github.com/go-co-op/gocron/v2"
 )
 
-func (w *Worker) StartDBConnectJob() error {
+func (w *Worker) StartDBConnectJob(subscription func() error) error {
 	var err error
 
 	w.Model, err = models.New(w.DBUrl)
 	if err == nil {
 		log.Println("[INFO]: connection established with database")
+
+		// Start a job to try to connect with NATS
+		if err := w.StartNATSConnectJob(subscription); err != nil {
+			log.Fatalf("[FATAL]: could not start NATS connect job, reason: %v", err)
+		}
 		return nil
 	}
 	log.Printf("[ERROR]: could not connect with database %v", err)
@@ -35,6 +40,11 @@ func (w *Worker) StartDBConnectJob() error {
 				if err := w.TaskScheduler.RemoveJob(w.DBConnectJob.ID()); err != nil {
 					return
 				}
+
+				if err := w.StartNATSConnectJob(subscription); err != nil {
+					log.Fatalf("[FATAL]: could not start NATS connect job, reason: %v", err)
+				}
+				return
 			},
 		),
 	)

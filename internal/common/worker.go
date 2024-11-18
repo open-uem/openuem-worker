@@ -59,14 +59,8 @@ func (w *Worker) StartWorker(subscription func() error) {
 	log.Println("[INFO]: task scheduler has been started")
 
 	// Start a job to try to connect with the database
-	if err := w.StartDBConnectJob(); err != nil {
-		log.Printf("[ERROR]: could not start DB connect job, reason: %v", err)
-		return
-	}
-
-	// Start a job to try to connect with NATS
-	if err := w.StartNATSConnectJob(subscription); err != nil {
-		log.Printf("[ERROR]: could not start NATS connect job, reason: %v", err)
+	if err := w.StartDBConnectJob(subscription); err != nil {
+		log.Fatalf("[FATAL]: could not start DB connect job, reason: %v", err)
 		return
 	}
 }
