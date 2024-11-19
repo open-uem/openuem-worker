@@ -142,6 +142,13 @@ func (w *Worker) NewCertificateHandler(msg *nats.Msg) {
 		return
 	}
 
+	// If certificate has been sent we also set email as verified in case it wasn't (import users)
+	if err := w.Model.SetEmailVerified(w.CertRequest.Username); err != nil {
+		log.Println("[ERROR]: error saving certificate status", err.Error())
+		msg.NakWithDelay(5 * time.Minute)
+		return
+	}
+
 	if err := msg.Respond([]byte("New certificate has been processed")); err != nil {
 		log.Println("[ERROR]: could not sent response", err.Error())
 		return
