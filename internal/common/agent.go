@@ -21,14 +21,21 @@ func (w *Worker) SubscribeToAgentWorkerQueues() error {
 		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
 		return err
 	}
-	log.Printf("[INFO]: subscribed to queue deployresult")
+	log.Printf("[INFO]: subscribed to message deployresult")
 
 	_, err = w.NATSConnection.QueueSubscribe("ping.agentworker", "openuem-agents", w.PingHandler)
 	if err != nil {
 		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
 		return err
 	}
-	log.Printf("[INFO]: subscribed to queue ping")
+	log.Printf("[INFO]: subscribed to message ping")
+
+	_, err = w.NATSConnection.QueueSubscribe("agentconfig", "openuem-agents", w.AgentConfigHandler)
+	if err != nil {
+		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
+		return err
+	}
+	log.Printf("[INFO]: subscribed to message agent")
 	return nil
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/doncicuto/openuem_ent/networkadapter"
 	"github.com/doncicuto/openuem_ent/operatingsystem"
 	"github.com/doncicuto/openuem_ent/printer"
+	"github.com/doncicuto/openuem_ent/settings"
 	"github.com/doncicuto/openuem_ent/share"
 	"github.com/doncicuto/openuem_ent/systemupdate"
 	"github.com/doncicuto/openuem_ent/update"
@@ -339,4 +340,15 @@ func (m *Model) SaveUpdatesInfo(data *openuem_nats.AgentReport) error {
 	}
 
 	return tx.Commit()
+}
+
+func (m *Model) GetDefaultAgentFrequency() (int, error) {
+	var err error
+
+	settings, err := m.Client.Settings.Query().Select(settings.FieldAgentReportFrequenceInMinutes).Only(context.Background())
+	if err != nil {
+		return 0, err
+	}
+
+	return settings.AgentReportFrequenceInMinutes, nil
 }

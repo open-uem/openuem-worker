@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"log"
 
 	"github.com/doncicuto/openuem-worker/internal/models"
@@ -96,4 +97,28 @@ func (w *Worker) PingHandler(msg *nats.Msg) {
 	if err := msg.Respond(nil); err != nil {
 		log.Printf("[ERROR]: could not respond to ping message, reason: %v", err)
 	}
+}
+
+func (w *Worker) AgentConfigHandler(msg *nats.Msg) {
+	config := openuem_nats.Config{}
+
+	frequency, err := w.Model.GetDefaultAgentFrequency()
+	if err != nil {
+		log.Printf("[ERROR]: could not get default frequency, reason: %v", err)
+		config.Ok = false
+	} else {
+		config.AgentFrequency = frequency
+		config.Ok = true
+	}
+
+	data, err := json.Marshal(config)
+	if err != nil {
+		log.Printf("[ERROR]: could not marshal config data, reason: %v", err)
+		return
+	}
+
+	if err := msg.Respond(data); err != nil {
+		log.Printf("[ERROR]: could not respond with agent config, reason: %v", err)
+	}
+	return
 }
