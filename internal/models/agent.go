@@ -46,7 +46,9 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 		SetVnc(data.SupportedVNCServer).
 		SetUpdateTaskExecution(data.LastUpdateTaskExecutionTime).
 		SetUpdateTaskResult(data.LastUpdateTaskResult).
-		SetUpdateTaskStatus(data.LastUpdateTaskStatus)
+		SetUpdateTaskStatus(data.LastUpdateTaskStatus).
+		SetVncProxyPort(data.VNCProxyPort).
+		SetSftpPort(data.SFTPPort)
 
 	if exists {
 		query.SetUpdateTaskVersion(existingAgent.UpdateTaskVersion).SetUpdateTaskDescription(existingAgent.UpdateTaskDescription)
