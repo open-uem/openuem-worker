@@ -15,6 +15,7 @@ import (
 	"github.com/doncicuto/openuem_ent/networkadapter"
 	"github.com/doncicuto/openuem_ent/operatingsystem"
 	"github.com/doncicuto/openuem_ent/printer"
+	"github.com/doncicuto/openuem_ent/release"
 	"github.com/doncicuto/openuem_ent/settings"
 	"github.com/doncicuto/openuem_ent/share"
 	"github.com/doncicuto/openuem_ent/systemupdate"
@@ -39,7 +40,6 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 		SetID(data.AgentID).
 		SetOs(data.OS).
 		SetHostname(data.Hostname).
-		SetVersion(data.Version).
 		SetEnabled(true).
 		SetIP(data.IP).
 		SetMAC(data.MACAddress).
@@ -351,4 +351,56 @@ func (m *Model) GetDefaultAgentFrequency() (int, error) {
 	}
 
 	return settings.AgentReportFrequenceInMinutes, nil
+}
+
+func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
+	var err error
+	var r *openuem_ent.Release
+	releaseExists := false
+
+	log.Println("Save release: ", data.Release.Version)
+
+	r, err = m.Client.Release.Query().
+		Where(release.Version(data.Release.Version), release.Channel(data.Release.Channel), release.Os(data.Release.Os), release.Arch(data.Release.Arch)).
+		Only(context.Background())
+
+	// First check if the release is in our database
+	if err != nil {
+		if !openuem_ent.IsNotFound(err) {
+			return err
+		}
+	} else {
+		releaseExists = true
+	}
+
+	log.Println("Release exists: ", releaseExists)
+
+	// If not exists add it
+	if !releaseExists {
+		r, err = m.Client.Release.Create().
+			SetVersion(data.Release.Version).
+			SetChannel(data.Release.Channel).
+			SetSummary(data.Release.Summary).
+			SetFileURL(data.Release.FileURL).
+			SetReleaseNotes(data.Release.ReleaseNotes).
+			SetChecksum(data.Release.Checksum).
+			SetIsCritical(data.Release.IsCritical).
+			SetReleaseDate(data.Release.ReleaseDate).
+			SetArch(data.Release.Arch).
+			SetOs(data.Release.Os).
+			AddAgentIDs(data.AgentID).
+			Save(context.Background())
+		if err != nil {
+			return err
+		}
+	} else {
+		if err := m.Client.Release.UpdateOneID(r.ID).AddAgentIDs(data.AgentID).Exec(context.Background()); err != nil {
+			return err
+		}
+	}
+
+	log.Println("Trying to connect agent to release: ")
+
+	// Finally connect the release with the agent
+	return m.Client.Debug().Agent.Update().Where(agent.ID(data.AgentID)).SetReleaseID(r.ID).Exec(context.Background())
 }
