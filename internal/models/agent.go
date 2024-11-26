@@ -51,7 +51,7 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 		SetSftpPort(data.SFTPPort)
 
 	if exists {
-		query.SetUpdateTaskVersion(existingAgent.UpdateTaskVersion).SetUpdateTaskDescription(existingAgent.UpdateTaskDescription)
+		query.SetUpdateTaskVersion(existingAgent.UpdateTaskVersion).SetUpdateTaskDescription(existingAgent.UpdateTaskDescription).SetStatus(existingAgent.Status)
 	}
 
 	if exists {
