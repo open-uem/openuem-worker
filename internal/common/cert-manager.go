@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/doncicuto/openuem_ent/certificate"
@@ -22,19 +23,26 @@ import (
 )
 
 func (w *Worker) SubscribeToCertManagerWorkerQueues() error {
-	_, err := w.NATSConnection.Subscribe("certificates.new", w.NewCertificateHandler)
+	_, err := w.NATSConnection.QueueSubscribe("certificates.user", "openuem-cert-manager", w.NewUserCertificateHandler)
 	if err != nil {
 		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
 		return err
 	}
-	log.Println("[INFO]: subscribed to queue certificates.new")
+	log.Println("[INFO]: subscribed to queue certificates.user")
 
-	_, err = w.NATSConnection.Subscribe("certificates.revoke", w.RevokeCertificateHandler)
+	_, err = w.NATSConnection.QueueSubscribe("certificates.revoke", "openuem-cert-manager", w.RevokeCertificateHandler)
 	if err != nil {
 		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
 		return err
 	}
 	log.Println("[INFO]: subscribed to queue certificates.revoke")
+
+	_, err = w.NATSConnection.QueueSubscribe("certificates.agent.*", "openuem-cert-manager", w.NewAgentCertificateHandler)
+	if err != nil {
+		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
+		return err
+	}
+	log.Printf("[INFO]: subscribed to queue certificates.agent")
 
 	_, err = w.NATSConnection.QueueSubscribe("ping.certmanagerworker", "openuem-cert-manager", w.PingHandler)
 	if err != nil {
@@ -106,7 +114,7 @@ func (w *Worker) NewX509UserCertificateTemplate() (*x509.Certificate, error) {
 	}, nil
 }
 
-func (w *Worker) NewCertificateHandler(msg *nats.Msg) {
+func (w *Worker) NewUserCertificateHandler(msg *nats.Msg) {
 
 	// Read message
 	cr := openuem_nats.CertificateRequest{}
@@ -150,6 +158,66 @@ func (w *Worker) NewCertificateHandler(msg *nats.Msg) {
 	}
 
 	if err := msg.Respond([]byte("New certificate has been processed")); err != nil {
+		log.Println("[ERROR]: could not sent response", err.Error())
+		return
+	}
+}
+
+func (w *Worker) NewAgentCertificateHandler(msg *nats.Msg) {
+
+	// Read message
+	subject := msg.Subject
+	subjectTokens := strings.Split(subject, ".")
+
+	if len(subjectTokens) != 3 {
+		return
+	}
+
+	agentId := subjectTokens[2]
+
+	log.Println("AgentID: ", agentId)
+
+	/* cr := openuem_nats.CertificateRequest{}
+	if err := json.Unmarshal(msg.Data, &cr); err != nil {
+		log.Printf("[ERROR]: could not unmarshall new certificate request, reason: %v", err)
+		msg.NakWithDelay(5 * time.Minute)
+		return
+	}
+	w.CertRequest = &cr
+
+	if err := w.GenerateUserCertificate(); err != nil {
+		log.Printf("[ERROR]: could not generate the user certificate, reason: %v", err)
+		msg.NakWithDelay(5 * time.Minute)
+		return
+	}
+
+	if err := w.SendCertificate(); err != nil {
+		log.Printf("[ERROR]: could not send the user certificate, reason: %v", err)
+		msg.NakWithDelay(5 * time.Minute)
+		return
+	}
+
+	certDescription := w.CertRequest.Username + " client certificate"
+	if err := w.Model.SaveCertificate(w.UserCert.SerialNumber.Int64(), certificate.Type("user"), w.CertRequest.Username, certDescription, w.UserCert.NotAfter); err != nil {
+		log.Println("[ERROR]: error saving certificate status", err.Error())
+		msg.NakWithDelay(5 * time.Minute)
+		return
+	}
+
+	if err := w.Model.SetCertificateSent(w.CertRequest.Username); err != nil {
+		log.Println("[ERROR]: error saving certificate status", err.Error())
+		msg.NakWithDelay(5 * time.Minute)
+		return
+	}
+
+	// If certificate has been sent we also set email as verified in case it wasn't (import users)
+	if err := w.Model.SetEmailVerified(w.CertRequest.Username); err != nil {
+		log.Println("[ERROR]: error saving certificate status", err.Error())
+		msg.NakWithDelay(5 * time.Minute)
+		return
+	}
+	*/
+	if err := msg.Respond([]byte("")); err != nil {
 		log.Println("[ERROR]: could not sent response", err.Error())
 		return
 	}
