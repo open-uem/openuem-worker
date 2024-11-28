@@ -3,6 +3,7 @@ package common
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -18,31 +19,46 @@ import (
 	"github.com/doncicuto/openuem_ent/certificate"
 	"github.com/doncicuto/openuem_nats"
 	"github.com/doncicuto/openuem_utils"
-	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
 func (w *Worker) SubscribeToCertManagerWorkerQueues() error {
-	_, err := w.NATSConnection.QueueSubscribe("certificates.user", "openuem-cert-manager", w.NewUserCertificateHandler)
-	if err != nil {
-		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
-		return err
-	}
-	log.Println("[INFO]: subscribed to queue certificates.user")
+	var ctx context.Context
 
-	_, err = w.NATSConnection.QueueSubscribe("certificates.revoke", "openuem-cert-manager", w.RevokeCertificateHandler)
+	js, err := jetstream.New(w.NATSConnection)
 	if err != nil {
-		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
+		log.Printf("[ERROR]: could not intantiate JetStream: %v", err)
 		return err
 	}
-	log.Println("[INFO]: subscribed to queue certificates.revoke")
 
-	_, err = w.NATSConnection.QueueSubscribe("certificates.agent.*", "openuem-cert-manager", w.NewAgentCertificateHandler)
+	ctx, w.JetstreamContextCancel = context.WithTimeout(context.Background(), 60*time.Minute)
+	s, err := js.CreateStream(ctx, jetstream.StreamConfig{
+		Name:     "CERT_MANAGER_STREAM",
+		Subjects: []string{"certificates.user", "certificates.revoke", "certificates.agent.*"},
+	})
 	if err != nil {
-		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
+		log.Printf("[ERROR]: could not create stream: %v", err)
 		return err
 	}
-	log.Printf("[INFO]: subscribed to queue certificates.agent")
+
+	c1, err := s.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
+		Durable:   "CertManagerConsumer",
+		AckPolicy: jetstream.AckExplicitPolicy,
+	})
+	if err != nil {
+		log.Printf("[ERROR]: could not create Jetstream consumer: %v", err)
+		return err
+	}
+	// TODO stop consume context ()
+	_, err = c1.Consume(w.JetStreamCertManagerHandler, jetstream.ConsumeErrHandler(func(consumeCtx jetstream.ConsumeContext, err error) {
+		log.Printf("[ERROR]: consumer error: %v", err)
+	}))
+	if err != nil {
+		log.Printf("[ERROR]: could not start Cert Manager consumer: %v", err)
+		return err
+	}
+	log.Println("[INFO]: Cert Manager consumer is ready to serve")
 
 	_, err = w.NATSConnection.QueueSubscribe("ping.certmanagerworker", "openuem-cert-manager", w.PingHandler)
 	if err != nil {
@@ -70,7 +86,7 @@ func (w *Worker) GenerateUserCertificate() error {
 		return err
 	}
 
-	w.UserCert, err = x509.ParseCertificate(certBytes)
+	w.Cert, err = x509.ParseCertificate(certBytes)
 	if err != nil {
 		return err
 	}
@@ -80,7 +96,33 @@ func (w *Worker) GenerateUserCertificate() error {
 		password = pkcs12.DefaultPassword
 	}
 
-	w.PKCS12, err = pkcs12.Modern.Encode(certPrivKey, w.UserCert, []*x509.Certificate{w.CACert}, password)
+	w.PKCS12, err = pkcs12.Modern.Encode(certPrivKey, w.Cert, []*x509.Certificate{w.CACert}, password)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (w *Worker) GenerateAgentCertificate() error {
+	var err error
+	template, err := w.NewX509AgentCertificateTemplate()
+	if err != nil {
+		return err
+	}
+
+	w.PrivateKey, err = rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return err
+	}
+
+	certBytes, err := x509.CreateCertificate(rand.Reader, template, w.CACert, &w.PrivateKey.PublicKey, w.CAPrivateKey)
+	if err != nil {
+		return err
+	}
+	w.CertBytes = certBytes
+
+	w.Cert, err = x509.ParseCertificate(certBytes)
 	if err != nil {
 		return err
 	}
@@ -114,11 +156,38 @@ func (w *Worker) NewX509UserCertificateTemplate() (*x509.Certificate, error) {
 	}, nil
 }
 
-func (w *Worker) NewUserCertificateHandler(msg *nats.Msg) {
+func (w *Worker) NewX509AgentCertificateTemplate() (*x509.Certificate, error) {
+	serialNumber, err := openuem_utils.GenerateSerialNumber()
+	if err != nil {
+		return nil, err
+	}
+
+	return &x509.Certificate{
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			CommonName:    "OpenUEM Agent Services",
+			Organization:  []string{w.CertRequest.Organization},
+			Country:       []string{w.CertRequest.Country},
+			Province:      []string{w.CertRequest.Province},
+			Locality:      []string{w.CertRequest.Locality},
+			StreetAddress: []string{w.CertRequest.Address},
+			PostalCode:    []string{w.CertRequest.PostalCode},
+		},
+		Issuer:      w.CACert.Subject,
+		DNSNames:    []string{strings.ToLower(w.CertRequest.DNSName)},
+		NotBefore:   time.Now().Add(-5 * time.Minute).UTC(),
+		NotAfter:    time.Now().AddDate(w.CertRequest.YearsValid, w.CertRequest.MonthsValid, w.CertRequest.DaysValid),
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		KeyUsage:    x509.KeyUsageDigitalSignature,
+		OCSPServer:  w.OCSPResponders,
+	}, nil
+}
+
+func (w *Worker) NewUserCertificateHandler(msg jetstream.Msg) {
 
 	// Read message
 	cr := openuem_nats.CertificateRequest{}
-	if err := json.Unmarshal(msg.Data, &cr); err != nil {
+	if err := json.Unmarshal(msg.Data(), &cr); err != nil {
 		log.Printf("[ERROR]: could not unmarshall new certificate request, reason: %v", err)
 		msg.NakWithDelay(5 * time.Minute)
 		return
@@ -138,7 +207,7 @@ func (w *Worker) NewUserCertificateHandler(msg *nats.Msg) {
 	}
 
 	certDescription := w.CertRequest.Username + " client certificate"
-	if err := w.Model.SaveCertificate(w.UserCert.SerialNumber.Int64(), certificate.Type("user"), w.CertRequest.Username, certDescription, w.UserCert.NotAfter); err != nil {
+	if err := w.Model.SaveCertificate(w.Cert.SerialNumber.Int64(), certificate.Type("user"), w.CertRequest.Username, certDescription, w.Cert.NotAfter); err != nil {
 		log.Println("[ERROR]: error saving certificate status", err.Error())
 		msg.NakWithDelay(5 * time.Minute)
 		return
@@ -157,74 +226,71 @@ func (w *Worker) NewUserCertificateHandler(msg *nats.Msg) {
 		return
 	}
 
-	if err := msg.Respond([]byte("New certificate has been processed")); err != nil {
+	if err := msg.Ack(); err != nil {
 		log.Println("[ERROR]: could not sent response", err.Error())
 		return
 	}
 }
 
-func (w *Worker) NewAgentCertificateHandler(msg *nats.Msg) {
-
+func (w *Worker) NewAgentCertificateHandler(msg jetstream.Msg) {
 	// Read message
-	subject := msg.Subject
-	subjectTokens := strings.Split(subject, ".")
-
-	if len(subjectTokens) != 3 {
-		return
-	}
-
-	agentId := subjectTokens[2]
-
-	log.Println("AgentID: ", agentId)
-
-	/* cr := openuem_nats.CertificateRequest{}
-	if err := json.Unmarshal(msg.Data, &cr); err != nil {
+	cr := openuem_nats.CertificateRequest{}
+	if err := json.Unmarshal(msg.Data(), &cr); err != nil {
 		log.Printf("[ERROR]: could not unmarshall new certificate request, reason: %v", err)
-		msg.NakWithDelay(5 * time.Minute)
+		msg.Ack()
 		return
 	}
 	w.CertRequest = &cr
 
-	if err := w.GenerateUserCertificate(); err != nil {
-		log.Printf("[ERROR]: could not generate the user certificate, reason: %v", err)
-		msg.NakWithDelay(5 * time.Minute)
+	if err := w.GenerateAgentCertificate(); err != nil {
+		log.Printf("[ERROR]: could not generate the agent certificate, reason: %v", err)
+		msg.Ack()
 		return
 	}
 
-	if err := w.SendCertificate(); err != nil {
-		log.Printf("[ERROR]: could not send the user certificate, reason: %v", err)
-		msg.NakWithDelay(5 * time.Minute)
+	if w.NATSConnection == nil || !w.NATSConnection.IsConnected() {
+		log.Println("[ERROR]: could not send the agent certificate to the agent, reason: NATS is not connected")
+		msg.NakWithDelay(10 * time.Minute)
 		return
 	}
 
-	certDescription := w.CertRequest.Username + " client certificate"
-	if err := w.Model.SaveCertificate(w.UserCert.SerialNumber.Int64(), certificate.Type("user"), w.CertRequest.Username, certDescription, w.UserCert.NotAfter); err != nil {
+	certData, err := json.Marshal(openuem_nats.AgentCertificateData{
+		CertBytes:       w.CertBytes,
+		PrivateKeyBytes: x509.MarshalPKCS1PrivateKey(w.PrivateKey),
+	})
+	if err != nil {
+		log.Println("[ERROR]: could not marshal data with agent certificate, reason: NATS is not connected")
+		msg.Ack()
+		return
+	}
+
+	err = w.NATSConnection.Publish("agent.certificate."+cr.AgentId, certData)
+	if err != nil {
+		log.Printf("[ERROR]: could not publish the agent certificate message, reason: %v", err)
+		msg.NakWithDelay(10 * time.Minute)
+		return
+	}
+
+	certDescription := w.CertRequest.DNSName + " agent certificate"
+
+	if err := w.Model.RevokePreviousCertificates(certDescription); err != nil {
+		log.Printf("[ERROR]: could not revoke previous certificate, reason: %v", err)
+	}
+
+	if err := w.Model.SaveCertificate(w.Cert.SerialNumber.Int64(), certificate.Type("agent"), "", certDescription, w.Cert.NotAfter); err != nil {
 		log.Println("[ERROR]: error saving certificate status", err.Error())
-		msg.NakWithDelay(5 * time.Minute)
+		msg.NakWithDelay(10 * time.Minute)
 		return
 	}
 
-	if err := w.Model.SetCertificateSent(w.CertRequest.Username); err != nil {
-		log.Println("[ERROR]: error saving certificate status", err.Error())
-		msg.NakWithDelay(5 * time.Minute)
-		return
-	}
-
-	// If certificate has been sent we also set email as verified in case it wasn't (import users)
-	if err := w.Model.SetEmailVerified(w.CertRequest.Username); err != nil {
-		log.Println("[ERROR]: error saving certificate status", err.Error())
-		msg.NakWithDelay(5 * time.Minute)
-		return
-	}
-	*/
-	if err := msg.Respond([]byte("")); err != nil {
+	if err := msg.Ack(); err != nil {
 		log.Println("[ERROR]: could not sent response", err.Error())
 		return
 	}
 }
 
-func (w *Worker) RevokeCertificateHandler(msg *nats.Msg) {
-	if err := msg.Respond([]byte("Certificate has been revoked!")); err != nil {
+func (w *Worker) RevokeCertificateHandler(msg jetstream.Msg) {
+	if err := msg.Ack(); err != nil {
 		log.Println("[ERROR]: could not send response", err.Error())
 		return
 	}
@@ -275,9 +341,27 @@ func (w *Worker) SendCertificate() error {
 		return err
 	}
 
+	if w.NATSConnection == nil || !w.NATSConnection.IsConnected() {
+		return err
+	}
+
 	if err := w.NATSConnection.Publish("notification.send_certificate", data); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (w *Worker) JetStreamCertManagerHandler(msg jetstream.Msg) {
+	if msg.Subject() == "certificates.user" {
+		w.NewUserCertificateHandler(msg)
+	}
+
+	if msg.Subject() == "certificates.revoke" {
+		w.RevokeCertificateHandler(msg)
+	}
+
+	if strings.Contains(msg.Subject(), "certificates.agent.") {
+		w.NewAgentCertificateHandler(msg)
+	}
 }

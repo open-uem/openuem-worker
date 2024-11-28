@@ -30,7 +30,9 @@ type Worker struct {
 	CACertPath             string
 	CAKeyPath              string
 	PKCS12                 []byte
-	UserCert               *x509.Certificate
+	Cert                   *x509.Certificate
+	CertBytes              []byte
+	PrivateKey             *rsa.PrivateKey
 	CertRequest            *openuem_nats.CertificateRequest
 	Settings               *openuem_ent.Settings
 	Logger                 *openuem_utils.OpenUEMLogger

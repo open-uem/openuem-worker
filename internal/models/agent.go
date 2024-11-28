@@ -40,7 +40,6 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 		SetID(data.AgentID).
 		SetOs(data.OS).
 		SetHostname(data.Hostname).
-		SetEnabled(true).
 		SetIP(data.IP).
 		SetMAC(data.MACAddress).
 		SetVnc(data.SupportedVNCServer).
@@ -48,7 +47,9 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 		SetUpdateTaskResult(data.LastUpdateTaskResult).
 		SetUpdateTaskStatus(data.LastUpdateTaskStatus).
 		SetVncProxyPort(data.VNCProxyPort).
-		SetSftpPort(data.SFTPPort)
+		SetSftpPort(data.SFTPPort).
+		SetCertificateReady(data.CertificateReady).
+		SetRestartRequired(data.RestartRequired)
 
 	if exists {
 		query.SetUpdateTaskVersion(existingAgent.UpdateTaskVersion).SetUpdateTaskDescription(existingAgent.UpdateTaskDescription).SetStatus(existingAgent.Status)
@@ -405,4 +406,8 @@ func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
 
 	// Finally connect the release with the agent
 	return m.Client.Debug().Agent.Update().Where(agent.ID(data.AgentID)).SetReleaseID(r.ID).Exec(context.Background())
+}
+
+func (m *Model) SetAgentIsWaitingForAdmissionAgain(agentId string) error {
+	return m.Client.Agent.Update().SetStatus(agent.StatusWaitingForAdmission).Where(agent.ID(agentId)).Exec(context.Background())
 }
