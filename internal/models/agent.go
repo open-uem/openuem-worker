@@ -361,8 +361,6 @@ func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
 	var r *openuem_ent.Release
 	releaseExists := false
 
-	log.Println("Save release: ", data.Release.Version)
-
 	r, err = m.Client.Release.Query().
 		Where(release.Version(data.Release.Version), release.Channel(data.Release.Channel), release.Os(data.Release.Os), release.Arch(data.Release.Arch)).
 		Only(context.Background())
@@ -376,11 +374,10 @@ func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
 		releaseExists = true
 	}
 
-	log.Println("Release exists: ", releaseExists)
-
 	// If not exists add it
 	if !releaseExists {
 		r, err = m.Client.Release.Create().
+			SetReleaseType(release.ReleaseTypeAgent).
 			SetVersion(data.Release.Version).
 			SetChannel(data.Release.Channel).
 			SetSummary(data.Release.Summary).
@@ -401,8 +398,6 @@ func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
 			return err
 		}
 	}
-
-	log.Println("Trying to connect agent to release: ")
 
 	// Finally connect the release with the agent
 	return m.Client.Debug().Agent.Update().Where(agent.ID(data.AgentID)).SetReleaseID(r.ID).Exec(context.Background())
