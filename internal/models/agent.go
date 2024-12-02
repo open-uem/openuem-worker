@@ -2,6 +2,8 @@ package models
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -21,6 +23,7 @@ import (
 	"github.com/doncicuto/openuem_ent/systemupdate"
 	"github.com/doncicuto/openuem_ent/update"
 	"github.com/doncicuto/openuem_nats"
+	"github.com/doncicuto/openuem_utils"
 )
 
 func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
@@ -374,18 +377,42 @@ func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
 		releaseExists = true
 	}
 
+	// Get release info from API
+	url := fmt.Sprintf("https://releases.openuem.eu/api?action=agentReleaseInfo&version=%s", r.Version)
+
+	body, err := openuem_utils.QueryReleasesEndpoint(url)
+	if err != nil {
+		return err
+	}
+
+	releaseFromApi := openuem_nats.OpenUEMRelease{}
+	if err := json.Unmarshal(body, &releaseFromApi); err != nil {
+		return err
+	}
+
+	fileURL := ""
+	checksum := ""
+
+	for _, item := range releaseFromApi.Files {
+		if item.Arch == data.Release.Arch && item.Os == data.Release.Os {
+			fileURL = item.FileURL
+			checksum = item.Checksum
+			break
+		}
+	}
+
 	// If not exists add it
 	if !releaseExists {
 		r, err = m.Client.Release.Create().
 			SetReleaseType(release.ReleaseTypeAgent).
 			SetVersion(data.Release.Version).
-			SetChannel(data.Release.Channel).
-			SetSummary(data.Release.Summary).
-			SetFileURL(data.Release.FileURL).
-			SetReleaseNotes(data.Release.ReleaseNotes).
-			SetChecksum(data.Release.Checksum).
-			SetIsCritical(data.Release.IsCritical).
-			SetReleaseDate(data.Release.ReleaseDate).
+			SetChannel(releaseFromApi.Channel).
+			SetSummary(releaseFromApi.Summary).
+			SetFileURL(fileURL).
+			SetReleaseNotes(releaseFromApi.ReleaseNotesURL).
+			SetChecksum(checksum).
+			SetIsCritical(releaseFromApi.IsCritical).
+			SetReleaseDate(releaseFromApi.ReleaseDate).
 			SetArch(data.Release.Arch).
 			SetOs(data.Release.Os).
 			AddAgentIDs(data.AgentID).
