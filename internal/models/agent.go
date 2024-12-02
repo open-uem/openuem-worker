@@ -378,7 +378,7 @@ func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
 	}
 
 	// Get release info from API
-	url := fmt.Sprintf("https://releases.openuem.eu/api?action=agentReleaseInfo&version=%s", r.Version)
+	url := fmt.Sprintf("https://releases.openuem.eu/api?action=agentReleaseInfo&version=%s", data.Release.Version)
 
 	body, err := openuem_utils.QueryReleasesEndpoint(url)
 	if err != nil {
@@ -427,7 +427,7 @@ func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
 	}
 
 	// Finally connect the release with the agent
-	return m.Client.Debug().Agent.Update().Where(agent.ID(data.AgentID)).SetReleaseID(r.ID).Exec(context.Background())
+	return m.Client.Agent.Update().Where(agent.ID(data.AgentID)).SetReleaseID(r.ID).Exec(context.Background())
 }
 
 func (m *Model) SetAgentIsWaitingForAdmissionAgain(agentId string) error {
