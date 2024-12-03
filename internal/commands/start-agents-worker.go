@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/doncicuto/openuem-worker/internal/common"
+	"github.com/doncicuto/openuem_ent/component"
 	"github.com/urfave/cli/v2"
 )
 
@@ -32,7 +33,7 @@ func AgentWorker() *cli.Command {
 }
 
 func startAgentsWorker(cCtx *cli.Context) error {
-	worker := common.NewWorker("")
+	worker := common.NewWorker("", component.ComponentAgentWorker)
 
 	if err := worker.CheckCLICommonRequisites(cCtx); err != nil {
 		log.Printf("[ERROR]: could not generate config for Agents Worker: %v", err)

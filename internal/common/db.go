@@ -15,6 +15,11 @@ func (w *Worker) StartDBConnectJob(subscription func() error) error {
 	if err == nil {
 		log.Println("[INFO]: connection established with database")
 
+		// Save component version
+		if err := w.Model.SetComponent(w.Component, w.Version, w.Channel); err != nil {
+			log.Fatalf("[ERROR]: could not save component information")
+		}
+
 		// Start a job to try to connect with NATS
 		if err := w.StartNATSConnectJob(subscription); err != nil {
 			log.Fatalf("[FATAL]: could not start NATS connect job, reason: %v", err)
@@ -39,6 +44,11 @@ func (w *Worker) StartDBConnectJob(subscription func() error) error {
 
 				if err := w.TaskScheduler.RemoveJob(w.DBConnectJob.ID()); err != nil {
 					return
+				}
+
+				// Save component version
+				if err := w.Model.SetComponent(w.Component, w.Version, w.Channel); err != nil {
+					log.Fatalf("[ERROR]: could not save component information")
 				}
 
 				if err := w.StartNATSConnectJob(subscription); err != nil {
