@@ -16,7 +16,7 @@ func main() {
 	s := openuem_utils.NewOpenUEMWindowsService()
 
 	// Get config for service
-	if err := w.GenerateNotificationWorkerConfig(); err != nil {
+	if err := w.GenerateCommonWorkerConfig(component.ComponentNotificationWorker.String()); err != nil {
 		log.Printf("[ERROR]: could not generate config for notification worker: %v", err)
 	}
 

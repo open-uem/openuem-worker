@@ -19,6 +19,7 @@ require (
 	github.com/nats-io/nats.go v1.37.0
 	github.com/urfave/cli/v2 v2.27.5
 	github.com/wneessen/go-mail v0.4.4
+	golang.org/x/crypto v0.27.0
 	golang.org/x/sys v0.26.0
 	gopkg.in/ini.v1 v1.67.0
 	software.sslmate.com/src/go-pkcs12 v0.5.0
@@ -47,7 +48,6 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	github.com/zclconf/go-cty v1.8.0 // indirect
-	golang.org/x/crypto v0.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
 	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect

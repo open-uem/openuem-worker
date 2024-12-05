@@ -9,13 +9,14 @@ import (
 	"syscall"
 
 	"github.com/doncicuto/openuem-worker/internal/common"
+	"github.com/doncicuto/openuem_ent/component"
 )
 
 func main() {
-	w := common.NewWorker("openuem-notification-worker")
+	w := common.NewWorker("openuem-notification-worker", component.ComponentNotificationWorker)
 
 	// Get config for service
-	if err := w.GenerateCommonWorkerConfig("notification"); err != nil {
+	if err := w.GenerateCommonWorkerConfig(component.ComponentNotificationWorker.String()); err != nil {
 		log.Printf("[ERROR]: could not generate config for notification worker: %v", err)
 	}
 

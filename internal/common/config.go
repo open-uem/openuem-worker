@@ -1,20 +1,22 @@
-//go:build linux
-
 package common
 
 import (
 	"log"
 	"strings"
 
+	"github.com/doncicuto/openuem_ent/component"
 	"github.com/doncicuto/openuem_utils"
 	"gopkg.in/ini.v1"
 )
 
-func (w *Worker) GenerateCommonWorkerConfig(configPath string) error {
+func (w *Worker) GenerateCommonWorkerConfig(c string) error {
 	var err error
 
+	// Get conf file
+	configFile := openuem_utils.GetConfigFile()
+
 	// Open ini file
-	cfg, err := ini.Load("/etc/openuem-server/openuem.ini")
+	cfg, err := ini.Load(configFile)
 	if err != nil {
 		return err
 	}
@@ -25,30 +27,45 @@ func (w *Worker) GenerateCommonWorkerConfig(configPath string) error {
 		return err
 	}
 
-	key, err := cfg.Section("Server").GetKey("ca_cert_path")
+	key, err := cfg.Section("Certificates").GetKey("CACert")
 	if err != nil {
-		log.Printf("[ERROR]: could not get CA cert path %s\n", configPath+"ca_cert_path")
+		log.Printf("[ERROR]: could not get CA cert path, reason: %v\n", err)
 		return err
 	}
 	w.CACertPath = key.String()
 
-	key, err = cfg.Section("Server").GetKey(configPath + "_worker_cert_path")
+	certKey := ""
+	privateKey := ""
+	switch c {
+	case component.ComponentAgentWorker.String():
+		certKey = "AgentWorkerCert"
+		privateKey = "AgentWorkerKey"
+	case component.ComponentCertManagerWorker.String():
+		certKey = "CertManagerWorkerCert"
+		privateKey = "CertManagerWorkerKey"
+
+	case component.ComponentNotificationWorker.String():
+		certKey = "NotificationWorkerCert"
+		privateKey = "NotificationWorkerKey"
+	}
+
+	key, err = cfg.Section("Certificates").GetKey(certKey)
 	if err != nil {
-		log.Printf("[ERROR]: could not get Worker cert path %s\n", configPath+"_worker_cert_path")
+		log.Printf("[ERROR]: could not get Worker cert path, reason: %v\n", err)
 		return err
 	}
 	w.ClientCertPath = key.String()
 
-	key, err = cfg.Section("Server").GetKey(configPath + "_worker_key_path")
+	key, err = cfg.Section("Certificates").GetKey(privateKey)
 	if err != nil {
-		log.Printf("[ERROR]: could not get Worker key path %s\n", configPath+"_worker_key_path")
+		log.Printf("[ERROR]: could not get Worker key path, reason: %v\n", err)
 		return err
 	}
 	w.ClientKeyPath = key.String()
 
-	key, err = cfg.Section("Server").GetKey("nats_url")
+	key, err = cfg.Section("NATS").GetKey("NATSServer")
 	if err != nil {
-		log.Println("[ERROR]: could not get NATS url")
+		log.Println("[ERROR]: could not get NATS servers urls")
 		return err
 	}
 	w.NATSServers = key.String()
@@ -59,13 +76,16 @@ func (w *Worker) GenerateCommonWorkerConfig(configPath string) error {
 func (w *Worker) GenerateCertManagerWorkerConfig() error {
 	var err error
 
+	// Get conf file
+	configFile := openuem_utils.GetConfigFile()
+
 	// Open ini file
-	cfg, err := ini.Load("/etc/openuem-server/openuem.ini")
+	cfg, err := ini.Load(configFile)
 	if err != nil {
 		return err
 	}
 
-	if err := w.GenerateCommonWorkerConfig("cert_manager"); err != nil {
+	if err := w.GenerateCommonWorkerConfig(component.ComponentCertManagerWorker.String()); err != nil {
 		return err
 	}
 

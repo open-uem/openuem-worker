@@ -16,7 +16,7 @@ func main() {
 	s := openuem_utils.NewOpenUEMWindowsService()
 
 	// Get config for service
-	if err := w.GenerateAgentWorkerConfig(); err != nil {
+	if err := w.GenerateCommonWorkerConfig(component.ComponentAgentWorker.String()); err != nil {
 		log.Printf("[ERROR]: could not generate config for agent worker: %v", err)
 	}
 
