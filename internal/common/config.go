@@ -89,14 +89,14 @@ func (w *Worker) GenerateCertManagerWorkerConfig() error {
 		return err
 	}
 
-	key, err := cfg.Section("Server").GetKey("ca_key_path")
+	key, err := cfg.Section("Certificates").GetKey("CAKey")
 	if err != nil {
 		log.Println("[ERROR]: could not get CA key path")
 		return err
 	}
 	w.CAKeyPath = key.String()
 
-	key, err = cfg.Section("Server").GetKey("ocsp_url")
+	key, err = cfg.Section("Certificates").GetKey("OCSPUrls")
 	if err != nil {
 		log.Println("[ERROR]: could not get OCSP Responder url")
 		return err
