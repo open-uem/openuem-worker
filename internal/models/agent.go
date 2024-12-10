@@ -46,16 +46,37 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 		SetIP(data.IP).
 		SetMAC(data.MACAddress).
 		SetVnc(data.SupportedVNCServer).
-		SetUpdateTaskExecution(data.LastUpdateTaskExecutionTime).
-		SetUpdateTaskResult(data.LastUpdateTaskResult).
-		SetUpdateTaskStatus(data.LastUpdateTaskStatus).
 		SetVncProxyPort(data.VNCProxyPort).
 		SetSftpPort(data.SFTPPort).
-		SetCertificateReady(data.CertificateReady).
-		SetRestartRequired(data.RestartRequired)
+		SetCertificateReady(data.CertificateReady)
 
 	if exists {
-		query.SetUpdateTaskVersion(existingAgent.UpdateTaskVersion).SetUpdateTaskDescription(existingAgent.UpdateTaskDescription).SetStatus(existingAgent.Status)
+		// Status
+		if existingAgent.Status != agent.StatusWaitingForAdmission {
+			if data.Enabled {
+				query.SetStatus(agent.StatusEnabled)
+			} else {
+				query.SetStatus(agent.StatusDisabled)
+			}
+		}
+
+		// Check update task
+		query.SetUpdateTaskDescription(existingAgent.UpdateTaskDescription)
+		if data.LastUpdateTaskExecutionTime.After(existingAgent.UpdateTaskExecution) {
+			query.SetUpdateTaskExecution(data.LastUpdateTaskExecutionTime)
+			if existingAgent.UpdateTaskVersion == data.Release.Version {
+				query.SetUpdateTaskStatus(openuem_nats.UPDATE_SUCCESS)
+				query.SetUpdateTaskResult("")
+			} else {
+				query.SetUpdateTaskStatus(openuem_nats.UPDATE_ERROR)
+				if data.LastUpdateTaskResult != "" {
+					query.SetUpdateTaskResult(data.LastUpdateTaskResult)
+				}
+			}
+			query.SetUpdateTaskVersion("")
+		} else {
+			query.SetUpdateTaskExecution(existingAgent.UpdateTaskExecution).SetUpdateTaskResult(existingAgent.UpdateTaskResult).SetUpdateTaskStatus(existingAgent.UpdateTaskStatus).SetUpdateTaskVersion(existingAgent.UpdateTaskVersion)
+		}
 	}
 
 	if exists {
