@@ -65,8 +65,16 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 		if data.LastUpdateTaskExecutionTime.After(existingAgent.UpdateTaskExecution) {
 			query.SetUpdateTaskExecution(data.LastUpdateTaskExecutionTime)
 			if existingAgent.UpdateTaskVersion == data.Release.Version {
-				query.SetUpdateTaskStatus(openuem_nats.UPDATE_SUCCESS)
-				query.SetUpdateTaskResult("")
+				if data.LastUpdateTaskStatus == "admin.update.agents.task_status_success" {
+					query.SetUpdateTaskStatus(openuem_nats.UPDATE_SUCCESS)
+					query.SetUpdateTaskResult("")
+				}
+
+				if data.LastUpdateTaskStatus == "admin.update.agents.task_status_error" {
+					query.SetUpdateTaskStatus(openuem_nats.UPDATE_ERROR)
+					query.SetUpdateTaskResult(data.LastUpdateTaskResult)
+				}
+
 			} else {
 				query.SetUpdateTaskStatus(openuem_nats.UPDATE_ERROR)
 				if data.LastUpdateTaskResult != "" {
@@ -386,7 +394,7 @@ func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
 	releaseExists := false
 
 	r, err = m.Client.Release.Query().
-		Where(release.Version(data.Release.Version), release.Channel(data.Release.Channel), release.Os(data.Release.Os), release.Arch(data.Release.Arch)).
+		Where(release.ReleaseTypeEQ(release.ReleaseTypeAgent), release.Version(data.Release.Version), release.Channel(data.Release.Channel), release.Os(data.Release.Os), release.Arch(data.Release.Arch)).
 		Only(context.Background())
 
 	// First check if the release is in our database

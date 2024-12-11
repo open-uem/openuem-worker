@@ -9,14 +9,13 @@ import (
 	"syscall"
 
 	"github.com/doncicuto/openuem-worker/internal/common"
-	"github.com/doncicuto/openuem_ent/component"
 )
 
 func main() {
-	w := common.NewWorker("openuem-agent-worker", component.ComponentAgentWorker)
+	w := common.NewWorker("openuem-agent-worker")
 
 	// Get config for service
-	if err := w.GenerateCommonWorkerConfig(component.ComponentAgentWorker.String()); err != nil {
+	if err := w.GenerateCommonWorkerConfig("agent-worker"); err != nil {
 		log.Printf("[ERROR]: could not generate config for agent worker: %v", err)
 	}
 

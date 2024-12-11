@@ -6,17 +6,16 @@ import (
 	"log"
 
 	"github.com/doncicuto/openuem-worker/internal/common"
-	"github.com/doncicuto/openuem_ent/component"
 	"github.com/doncicuto/openuem_utils"
 	"golang.org/x/sys/windows/svc"
 )
 
 func main() {
-	w := common.NewWorker("openuem-notification-worker.txt", component.ComponentNotificationWorker)
+	w := common.NewWorker("openuem-notification-worker.txt")
 	s := openuem_utils.NewOpenUEMWindowsService()
 
 	// Get config for service
-	if err := w.GenerateCommonWorkerConfig(component.ComponentNotificationWorker.String()); err != nil {
+	if err := w.GenerateCommonWorkerConfig("notification-worker"); err != nil {
 		log.Printf("[ERROR]: could not generate config for notification worker: %v", err)
 	}
 

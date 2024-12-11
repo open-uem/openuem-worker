@@ -4,7 +4,6 @@ import (
 	"log"
 	"strings"
 
-	"github.com/doncicuto/openuem_ent/component"
 	"github.com/doncicuto/openuem_utils"
 	"gopkg.in/ini.v1"
 )
@@ -37,14 +36,13 @@ func (w *Worker) GenerateCommonWorkerConfig(c string) error {
 	certKey := ""
 	privateKey := ""
 	switch c {
-	case component.ComponentAgentWorker.String():
+	case "agent-worker":
 		certKey = "AgentWorkerCert"
 		privateKey = "AgentWorkerKey"
-	case component.ComponentCertManagerWorker.String():
+	case "cert-manager-worker":
 		certKey = "CertManagerWorkerCert"
 		privateKey = "CertManagerWorkerKey"
-
-	case component.ComponentNotificationWorker.String():
+	case "notification-worker":
 		certKey = "NotificationWorkerCert"
 		privateKey = "NotificationWorkerKey"
 	}
@@ -85,7 +83,7 @@ func (w *Worker) GenerateCertManagerWorkerConfig() error {
 		return err
 	}
 
-	if err := w.GenerateCommonWorkerConfig(component.ComponentCertManagerWorker.String()); err != nil {
+	if err := w.GenerateCommonWorkerConfig("cert-manager-worker"); err != nil {
 		return err
 	}
 

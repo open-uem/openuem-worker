@@ -9,7 +9,7 @@ import (
 
 	"github.com/doncicuto/openuem-worker/internal/models"
 	"github.com/doncicuto/openuem_ent"
-	"github.com/doncicuto/openuem_ent/component"
+	"github.com/doncicuto/openuem_ent/server"
 	"github.com/doncicuto/openuem_nats"
 	"github.com/doncicuto/openuem_utils"
 	"github.com/go-co-op/gocron/v2"
@@ -40,18 +40,16 @@ type Worker struct {
 	ConsoleURL             string
 	OCSPResponders         []string
 	JetstreamContextCancel context.CancelFunc
-	Component              component.Component
 	Version                string
-	Channel                component.Channel
+	Channel                server.Channel
 }
 
-func NewWorker(logName string, c component.Component) *Worker {
+func NewWorker(logName string) *Worker {
 	worker := Worker{}
 	if logName != "" {
 		worker.Logger = openuem_utils.NewLogger(logName)
 	}
 
-	worker.Component = c
 	worker.Version = VERSION
 	worker.Channel = CHANNEL
 	return &worker

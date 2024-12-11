@@ -10,7 +10,6 @@ import (
 	"syscall"
 
 	"github.com/doncicuto/openuem-worker/internal/common"
-	"github.com/doncicuto/openuem_ent/component"
 	"github.com/doncicuto/openuem_utils"
 	"github.com/urfave/cli/v2"
 )
@@ -54,7 +53,7 @@ func StartCertManagerWorkerFlags() []cli.Flag {
 }
 
 func startCertManagerWorker(cCtx *cli.Context) error {
-	worker := common.NewWorker("", component.ComponentCertManagerWorker)
+	worker := common.NewWorker("")
 
 	// Specific requisites
 	cwd, err := common.GetWd()

@@ -6,13 +6,12 @@ import (
 	"log"
 
 	"github.com/doncicuto/openuem-worker/internal/common"
-	"github.com/doncicuto/openuem_ent/component"
 	"github.com/doncicuto/openuem_utils"
 	"golang.org/x/sys/windows/svc"
 )
 
 func main() {
-	w := common.NewWorker("openuem-cert-manager-worker.txt", component.ComponentCertManagerWorker)
+	w := common.NewWorker("openuem-cert-manager-worker.txt")
 	s := openuem_utils.NewOpenUEMWindowsService()
 
 	// Get config for service
