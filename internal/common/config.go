@@ -61,7 +61,7 @@ func (w *Worker) GenerateCommonWorkerConfig(c string) error {
 	}
 	w.ClientKeyPath = key.String()
 
-	key, err = cfg.Section("NATS").GetKey("NATSServer")
+	key, err = cfg.Section("NATS").GetKey("NATSServers")
 	if err != nil {
 		log.Println("[ERROR]: could not get NATS servers urls")
 		return err
