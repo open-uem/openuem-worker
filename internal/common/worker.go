@@ -50,8 +50,6 @@ func NewWorker(logName string) *Worker {
 		worker.Logger = openuem_utils.NewLogger(logName)
 	}
 
-	worker.Version = VERSION
-	worker.Channel = CHANNEL
 	return &worker
 }
 

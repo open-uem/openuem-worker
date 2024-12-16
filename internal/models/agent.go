@@ -394,6 +394,7 @@ func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
 	releaseExists := false
 
 	r, err = m.Client.Release.Query().
+		WithAgents().
 		Where(release.ReleaseTypeEQ(release.ReleaseTypeAgent), release.Version(data.Release.Version), release.Channel(data.Release.Channel), release.Os(data.Release.Os), release.Arch(data.Release.Arch)).
 		Only(context.Background())
 
@@ -406,32 +407,32 @@ func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
 		releaseExists = true
 	}
 
-	// Get release info from API
-	url := fmt.Sprintf("https://releases.openuem.eu/api?action=agentReleaseInfo&version=%s", data.Release.Version)
-
-	body, err := openuem_utils.QueryReleasesEndpoint(url)
-	if err != nil {
-		return err
-	}
-
-	releaseFromApi := openuem_nats.OpenUEMRelease{}
-	if err := json.Unmarshal(body, &releaseFromApi); err != nil {
-		return err
-	}
-
-	fileURL := ""
-	checksum := ""
-
-	for _, item := range releaseFromApi.Files {
-		if item.Arch == data.Release.Arch && item.Os == data.Release.Os {
-			fileURL = item.FileURL
-			checksum = item.Checksum
-			break
-		}
-	}
-
 	// If not exists add it
 	if !releaseExists {
+		// Get release info from API
+		url := fmt.Sprintf("https://releases.openuem.eu/api?action=agentReleaseInfo&version=%s", data.Release.Version)
+
+		body, err := openuem_utils.QueryReleasesEndpoint(url)
+		if err != nil {
+			return err
+		}
+
+		releaseFromApi := openuem_nats.OpenUEMRelease{}
+		if err := json.Unmarshal(body, &releaseFromApi); err != nil {
+			return err
+		}
+
+		fileURL := ""
+		checksum := ""
+
+		for _, item := range releaseFromApi.Files {
+			if item.Arch == data.Release.Arch && item.Os == data.Release.Os {
+				fileURL = item.FileURL
+				checksum = item.Checksum
+				break
+			}
+		}
+
 		r, err = m.Client.Release.Create().
 			SetReleaseType(release.ReleaseTypeAgent).
 			SetVersion(data.Release.Version).
@@ -450,13 +451,23 @@ func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
 			return err
 		}
 	} else {
-		if err := m.Client.Release.UpdateOneID(r.ID).AddAgentIDs(data.AgentID).Exec(context.Background()); err != nil {
-			return err
+		newAgent := true
+		for _, a := range r.Edges.Agents {
+			if a.ID == data.AgentID {
+				newAgent = false
+				break
+			}
+		}
+
+		// Finally connect the release with the agent if new
+		if newAgent {
+			if err := m.Client.Release.UpdateOneID(r.ID).AddAgentIDs(data.AgentID).Exec(context.Background()); err != nil {
+				return err
+			}
 		}
 	}
 
-	// Finally connect the release with the agent
-	return m.Client.Agent.Update().Where(agent.ID(data.AgentID)).SetReleaseID(r.ID).Exec(context.Background())
+	return nil
 }
 
 func (m *Model) SetAgentIsWaitingForAdmissionAgain(agentId string) error {

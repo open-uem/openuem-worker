@@ -11,12 +11,10 @@ import (
 func (m *Model) SaveDeployInfo(data *openuem_nats.DeployAction) error {
 
 	if data.Action == "install" {
-		return m.Client.Deployment.Create().
-			SetPackageID(data.PackageId).
-			SetName(data.PackageName).
-			SetVersion(data.PackageVersion).
+		return m.Client.Deployment.Update().
 			SetInstalled(data.When).
-			SetOwnerID(data.AgentId).
+			SetUpdated(data.When).
+			Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).
 			Exec(context.Background())
 	}
 
