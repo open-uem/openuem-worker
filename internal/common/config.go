@@ -68,6 +68,8 @@ func (w *Worker) GenerateCommonWorkerConfig(c string) error {
 	}
 	w.NATSServers = key.String()
 
+	w.Replicas = len(strings.Split(w.NATSServers, ","))
+
 	return nil
 }
 

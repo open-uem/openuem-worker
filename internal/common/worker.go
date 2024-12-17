@@ -42,6 +42,7 @@ type Worker struct {
 	JetstreamContextCancel context.CancelFunc
 	Version                string
 	Channel                server.Channel
+	Replicas               int
 }
 
 func NewWorker(logName string) *Worker {

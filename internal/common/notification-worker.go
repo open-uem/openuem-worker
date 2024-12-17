@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
 	"github.com/doncicuto/openuem_ent"
@@ -12,6 +13,12 @@ import (
 func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 	var err error
 	var ctx context.Context
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Printf("[ERROR]: could not get Hostname: %v", err)
+		return err
+	}
 
 	js, err := jetstream.New(w.NATSConnection)
 	if err != nil {
@@ -31,17 +38,24 @@ func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 	}
 
 	ctx, w.JetstreamContextCancel = context.WithTimeout(context.Background(), 60*time.Minute)
-	s, err := js.CreateStream(ctx, jetstream.StreamConfig{
+
+	notificationStreamConfig := jetstream.StreamConfig{
 		Name:     "NOTIFICATION_STREAM",
 		Subjects: []string{"notification.confirm_email", "notification.send_certificate"},
-	})
+	}
+
+	if w.Replicas > 1 {
+		notificationStreamConfig.Replicas = w.Replicas
+	}
+
+	s, err := js.CreateOrUpdateStream(ctx, notificationStreamConfig)
 	if err != nil {
 		log.Printf("[ERROR]: could not create stream: %v", err)
 		return err
 	}
 
 	c1, err := s.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
-		Durable:   "NotificationsConsumer",
+		Durable:   "NotificationsConsumer" + hostname,
 		AckPolicy: jetstream.AckExplicitPolicy,
 	})
 	if err != nil {
