@@ -15,7 +15,7 @@ require (
 	github.com/doncicuto/openuem_nats v0.0.0-00010101000000-000000000000
 	github.com/doncicuto/openuem_utils v0.0.0-00010101000000-000000000000
 	github.com/go-co-op/gocron/v2 v2.14.0
-	github.com/jackc/pgx/v5 v5.7.1
+	github.com/jackc/pgx/v5 v5.7.2
 	github.com/nats-io/nats.go v1.38.0
 	github.com/urfave/cli/v2 v2.27.5
 	github.com/wneessen/go-mail v0.5.2

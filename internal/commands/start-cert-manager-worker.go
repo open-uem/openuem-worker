@@ -56,7 +56,7 @@ func startCertManagerWorker(cCtx *cli.Context) error {
 	worker := common.NewWorker("")
 
 	// Specific requisites
-	cwd, err := common.GetWd()
+	cwd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
