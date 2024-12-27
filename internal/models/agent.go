@@ -52,11 +52,11 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 
 	if exists {
 		// Status
-		if existingAgent.Status != agent.StatusWaitingForAdmission {
+		if existingAgent.AgentStatus != agent.AgentStatusWaitingForAdmission {
 			if data.Enabled {
-				query.SetStatus(agent.StatusEnabled)
+				query.SetAgentStatus(agent.AgentStatusEnabled)
 			} else {
-				query.SetStatus(agent.StatusDisabled)
+				query.SetAgentStatus(agent.AgentStatusDisabled)
 			}
 		}
 
@@ -151,7 +151,7 @@ func (m *Model) SaveAntivirusInfo(data *openuem_nats.AgentReport) error {
 func (m *Model) SaveSystemUpdateInfo(data *openuem_nats.AgentReport) error {
 	return m.Client.SystemUpdate.
 		Create().
-		SetStatus(data.SystemUpdate.Status).
+		SetSystemUpdateStatus(data.SystemUpdate.Status).
 		SetLastInstall(data.SystemUpdate.LastInstall).
 		SetLastSearch(data.SystemUpdate.LastSearch).
 		SetPendingUpdates(data.SystemUpdate.PendingUpdates).
@@ -471,5 +471,5 @@ func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
 }
 
 func (m *Model) SetAgentIsWaitingForAdmissionAgain(agentId string) error {
-	return m.Client.Agent.Update().SetStatus(agent.StatusWaitingForAdmission).Where(agent.ID(agentId)).Exec(context.Background())
+	return m.Client.Agent.Update().SetAgentStatus(agent.AgentStatusWaitingForAdmission).Where(agent.ID(agentId)).Exec(context.Background())
 }
