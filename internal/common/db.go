@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/doncicuto/openuem-worker/internal/models"
 	"github.com/go-co-op/gocron/v2"
+	"github.com/open-uem/openuem-worker/internal/models"
 )
 
 func (w *Worker) StartDBConnectJob(subscription func() error) error {

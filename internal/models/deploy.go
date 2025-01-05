@@ -3,9 +3,9 @@ package models
 import (
 	"context"
 
-	"github.com/doncicuto/openuem_ent/agent"
-	"github.com/doncicuto/openuem_ent/deployment"
-	"github.com/doncicuto/openuem_nats"
+	"github.com/open-uem/openuem_ent/agent"
+	"github.com/open-uem/openuem_ent/deployment"
+	"github.com/open-uem/openuem_nats"
 )
 
 func (m *Model) SaveDeployInfo(data *openuem_nats.DeployAction) error {

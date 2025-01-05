@@ -3,7 +3,7 @@ package models
 import (
 	"context"
 
-	"github.com/doncicuto/openuem_ent"
+	"github.com/open-uem/openuem_ent"
 )
 
 func (m *Model) GetSettings() (*openuem_ent.Settings, error) {

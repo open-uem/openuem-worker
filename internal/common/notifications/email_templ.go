@@ -8,7 +8,7 @@ package notifications
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "github.com/doncicuto/openuem_nats"
+import "github.com/open-uem/openuem_nats"
 
 func EmailTemplate(notification *openuem_nats.Notification) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -35,7 +35,7 @@ func EmailTemplate(notification *openuem_nats.Notification) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(notification.MessageTitle)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `common/notifications/email.templ`, Line: 9, Col: 37}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/common/notifications/email.templ`, Line: 9, Col: 37}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
@@ -48,7 +48,7 @@ func EmailTemplate(notification *openuem_nats.Notification) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(notification.MessageGreeting)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `common/notifications/email.templ`, Line: 148, Col: 166}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/common/notifications/email.templ`, Line: 148, Col: 166}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -83,7 +83,7 @@ func EmailTemplate(notification *openuem_nats.Notification) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(notification.MessageAction)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `common/notifications/email.templ`, Line: 163, Col: 418}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/common/notifications/email.templ`, Line: 163, Col: 418}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {

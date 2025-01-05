@@ -4,7 +4,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/doncicuto/openuem_utils"
+	"github.com/open-uem/openuem_utils"
 	"gopkg.in/ini.v1"
 )
 

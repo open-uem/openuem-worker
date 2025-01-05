@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/doncicuto/openuem_nats"
 	"github.com/nats-io/nats.go"
+	"github.com/open-uem/openuem_nats"
 )
 
 func (w *Worker) SubscribeToAgentWorkerQueues() error {

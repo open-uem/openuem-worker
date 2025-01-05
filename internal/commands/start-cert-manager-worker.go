@@ -9,8 +9,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/doncicuto/openuem-worker/internal/common"
-	"github.com/doncicuto/openuem_utils"
+	"github.com/open-uem/openuem-worker/internal/common"
+	"github.com/open-uem/openuem_utils"
 	"github.com/urfave/cli/v2"
 )
 

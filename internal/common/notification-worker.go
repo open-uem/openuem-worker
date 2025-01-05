@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/doncicuto/openuem_ent"
 	"github.com/nats-io/nats.go/jetstream"
+	"github.com/open-uem/openuem_ent"
 )
 
 func (w *Worker) SubscribeToNotificationWorkerQueues() error {

@@ -8,9 +8,9 @@ import (
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
-	ent "github.com/doncicuto/openuem_ent"
-	"github.com/doncicuto/openuem_ent/migrate"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	ent "github.com/open-uem/openuem_ent"
+	"github.com/open-uem/openuem_ent/migrate"
 )
 
 type Model struct {

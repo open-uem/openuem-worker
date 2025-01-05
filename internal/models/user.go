@@ -3,8 +3,8 @@ package models
 import (
 	"context"
 
-	"github.com/doncicuto/openuem_ent/user"
-	"github.com/doncicuto/openuem_nats"
+	"github.com/open-uem/openuem_ent/user"
+	"github.com/open-uem/openuem_nats"
 )
 
 func (m *Model) SetCertificateSent(uid string) error {

@@ -6,8 +6,8 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/doncicuto/openuem_ent"
-	"github.com/doncicuto/openuem_nats"
+	"github.com/open-uem/openuem_ent"
+	"github.com/open-uem/openuem_nats"
 	"github.com/wneessen/go-mail"
 )
 

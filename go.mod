@@ -1,19 +1,19 @@
-module github.com/doncicuto/openuem-worker
+module github.com/open-uem/openuem-worker
 
 go 1.23.4
 
-replace github.com/doncicuto/openuem_ent => ./internal/ent
+replace github.com/open-uem/openuem_ent => ./internal/ent
 
-replace github.com/doncicuto/openuem_utils => ./internal/utils
+replace github.com/open-uem/openuem_utils => ./internal/utils
 
-replace github.com/doncicuto/openuem_nats => ./internal/nats
+replace github.com/open-uem/openuem_nats => ./internal/nats
 
 require (
 	entgo.io/ent v0.14.1
 	github.com/a-h/templ v0.2.793
-	github.com/doncicuto/openuem_ent v0.0.0-00010101000000-000000000000
-	github.com/doncicuto/openuem_nats v0.0.0-00010101000000-000000000000
-	github.com/doncicuto/openuem_utils v0.0.0-00010101000000-000000000000
+	github.com/open-uem/openuem_ent v0.0.0-00010101000000-000000000000
+	github.com/open-uem/openuem_nats v0.0.0-00010101000000-000000000000
+	github.com/open-uem/openuem_utils v0.0.0-00010101000000-000000000000
 	github.com/go-co-op/gocron/v2 v2.14.0
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/nats-io/nats.go v1.38.0

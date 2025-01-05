@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/doncicuto/openuem-worker/internal/commands"
+	"github.com/open-uem/openuem-worker/internal/commands"
 	"github.com/urfave/cli/v2"
 )
 
@@ -14,7 +14,7 @@ func main() {
 		Commands:  getCommands(),
 		Usage:     "Manage an OpenUEM worker",
 		Authors:   []*cli.Author{{Name: "Miguel Angel Alvarez Cabrerizo", Email: "mcabrerizo@openuem.eu"}},
-		Copyright: "2024 - Miguel Angel Alvarez Cabrerizo <https://github.com/doncicuto>",
+		Copyright: "2024 - Miguel Angel Alvarez Cabrerizo <https://github.com/open-uem>",
 	}
 
 	if err := app.Run(os.Args); err != nil {

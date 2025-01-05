@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/doncicuto/openuem_ent"
-	"github.com/doncicuto/openuem_ent/certificate"
+	"github.com/open-uem/openuem_ent"
+	"github.com/open-uem/openuem_ent/certificate"
 	"golang.org/x/crypto/ocsp"
 )
 

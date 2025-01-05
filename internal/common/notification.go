@@ -5,11 +5,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/doncicuto/openuem-worker/internal/common/notifications"
-	"github.com/doncicuto/openuem_ent"
-	"github.com/doncicuto/openuem_nats"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
+	"github.com/open-uem/openuem-worker/internal/common/notifications"
+	"github.com/open-uem/openuem_ent"
+	"github.com/open-uem/openuem_nats"
 )
 
 func (w *Worker) JetStreamNotificationsHandler(msg jetstream.Msg) {

@@ -7,13 +7,13 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/doncicuto/openuem-worker/internal/models"
-	"github.com/doncicuto/openuem_ent"
-	"github.com/doncicuto/openuem_ent/server"
-	"github.com/doncicuto/openuem_nats"
-	"github.com/doncicuto/openuem_utils"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/nats-io/nats.go"
+	"github.com/open-uem/openuem-worker/internal/models"
+	"github.com/open-uem/openuem_ent"
+	"github.com/open-uem/openuem_ent/server"
+	"github.com/open-uem/openuem_nats"
+	"github.com/open-uem/openuem_utils"
 )
 
 type Worker struct {

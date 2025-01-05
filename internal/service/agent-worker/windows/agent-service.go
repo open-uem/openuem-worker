@@ -5,8 +5,8 @@ package main
 import (
 	"log"
 
-	"github.com/doncicuto/openuem-worker/internal/common"
-	"github.com/doncicuto/openuem_utils"
+	"github.com/open-uem/openuem-worker/internal/common"
+	"github.com/open-uem/openuem_utils"
 	"golang.org/x/sys/windows/svc"
 )
 

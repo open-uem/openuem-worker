@@ -16,10 +16,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/doncicuto/openuem_ent/certificate"
-	"github.com/doncicuto/openuem_nats"
-	"github.com/doncicuto/openuem_utils"
 	"github.com/nats-io/nats.go/jetstream"
+	"github.com/open-uem/openuem_ent/certificate"
+	"github.com/open-uem/openuem_nats"
+	"github.com/open-uem/openuem_utils"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
