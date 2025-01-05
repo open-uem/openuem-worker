@@ -2,21 +2,15 @@ module github.com/open-uem/openuem-worker
 
 go 1.23.4
 
-replace github.com/open-uem/openuem_ent => ./internal/ent
-
-replace github.com/open-uem/openuem_utils => ./internal/utils
-
-replace github.com/open-uem/openuem_nats => ./internal/nats
-
 require (
 	entgo.io/ent v0.14.1
 	github.com/a-h/templ v0.2.793
-	github.com/open-uem/openuem_ent v0.0.0-00010101000000-000000000000
-	github.com/open-uem/openuem_nats v0.0.0-00010101000000-000000000000
-	github.com/open-uem/openuem_utils v0.0.0-00010101000000-000000000000
 	github.com/go-co-op/gocron/v2 v2.14.0
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/nats-io/nats.go v1.38.0
+	github.com/open-uem/ent v0.0.0-20250105121453-5b3092896406
+	github.com/open-uem/nats v0.0.0-20250105115437-3eca4264073e
+	github.com/open-uem/utils v0.0.0-20250105115248-b0599a18d2b5
 	github.com/urfave/cli/v2 v2.27.5
 	github.com/wneessen/go-mail v0.5.2
 	golang.org/x/crypto v0.31.0

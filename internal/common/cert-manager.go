@@ -17,9 +17,9 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go/jetstream"
-	"github.com/open-uem/openuem_ent/certificate"
-	"github.com/open-uem/openuem_nats"
-	"github.com/open-uem/openuem_utils"
+	"github.com/open-uem/ent/certificate"
+	"github.com/open-uem/nats"
+	"github.com/open-uem/utils"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
@@ -144,7 +144,7 @@ func (w *Worker) GenerateAgentCertificate() error {
 }
 
 func (w *Worker) NewX509UserCertificateTemplate() (*x509.Certificate, error) {
-	serialNumber, err := openuem_utils.GenerateSerialNumber()
+	serialNumber, err := utils.GenerateSerialNumber()
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func (w *Worker) NewX509UserCertificateTemplate() (*x509.Certificate, error) {
 }
 
 func (w *Worker) NewX509AgentCertificateTemplate() (*x509.Certificate, error) {
-	serialNumber, err := openuem_utils.GenerateSerialNumber()
+	serialNumber, err := utils.GenerateSerialNumber()
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +199,7 @@ func (w *Worker) NewX509AgentCertificateTemplate() (*x509.Certificate, error) {
 func (w *Worker) NewUserCertificateHandler(msg jetstream.Msg) {
 
 	// Read message
-	cr := openuem_nats.CertificateRequest{}
+	cr := nats.CertificateRequest{}
 	if err := json.Unmarshal(msg.Data(), &cr); err != nil {
 		log.Printf("[ERROR]: could not unmarshall new certificate request, reason: %v", err)
 		msg.NakWithDelay(5 * time.Minute)
@@ -247,7 +247,7 @@ func (w *Worker) NewUserCertificateHandler(msg jetstream.Msg) {
 
 func (w *Worker) NewAgentCertificateHandler(msg jetstream.Msg) {
 	// Read message
-	cr := openuem_nats.CertificateRequest{}
+	cr := nats.CertificateRequest{}
 	if err := json.Unmarshal(msg.Data(), &cr); err != nil {
 		log.Printf("[ERROR]: could not unmarshall new certificate request, reason: %v", err)
 		msg.Ack()
@@ -267,7 +267,7 @@ func (w *Worker) NewAgentCertificateHandler(msg jetstream.Msg) {
 		return
 	}
 
-	certData, err := json.Marshal(openuem_nats.AgentCertificateData{
+	certData, err := json.Marshal(nats.AgentCertificateData{
 		CertBytes:       w.CertBytes,
 		PrivateKeyBytes: x509.MarshalPKCS1PrivateKey(w.PrivateKey),
 	})
@@ -333,7 +333,7 @@ func (w *Worker) SendCertificate() error {
 		return err
 	}
 
-	notification := openuem_nats.Notification{
+	notification := nats.Notification{
 		To:           w.CertRequest.Email,
 		Subject:      "Your certificate to log in to OpenUEM web console",
 		MessageTitle: "OpenUEM | Your certificate",

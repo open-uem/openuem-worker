@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/open-uem/openuem_utils"
+	"github.com/open-uem/utils"
 	"github.com/urfave/cli/v2"
 )
 
@@ -18,19 +18,19 @@ func (w *Worker) CheckCLICommonRequisites(cCtx *cli.Context) error {
 
 	w.DBUrl = cCtx.String("dburl")
 	w.CACertPath = filepath.Join(cwd, cCtx.String("cacert"))
-	w.CACert, err = openuem_utils.ReadPEMCertificate(w.CACertPath)
+	w.CACert, err = utils.ReadPEMCertificate(w.CACertPath)
 	if err != nil {
 		return err
 	}
 
 	w.ClientCertPath = filepath.Join(cwd, cCtx.String("cert"))
-	_, err = openuem_utils.ReadPEMCertificate(w.ClientCertPath)
+	_, err = utils.ReadPEMCertificate(w.ClientCertPath)
 	if err != nil {
 		return err
 	}
 
 	w.ClientKeyPath = filepath.Join(cwd, cCtx.String("key"))
-	_, err = openuem_utils.ReadPEMPrivateKey(w.ClientKeyPath)
+	_, err = utils.ReadPEMPrivateKey(w.ClientKeyPath)
 	if err != nil {
 		return err
 	}

@@ -5,13 +5,13 @@ import (
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
-	"github.com/open-uem/openuem_nats"
+	"github.com/open-uem/nats"
 )
 
 func (w *Worker) StartNATSConnectJob(queueSubscribe func() error) error {
 	var err error
 
-	w.NATSConnection, err = openuem_nats.ConnectWithNATS(w.NATSServers, w.ClientCertPath, w.ClientKeyPath, w.CACertPath)
+	w.NATSConnection, err = nats.ConnectWithNATS(w.NATSServers, w.ClientCertPath, w.ClientKeyPath, w.CACertPath)
 	if err == nil {
 		if err := queueSubscribe(); err == nil {
 			return err
@@ -27,7 +27,7 @@ func (w *Worker) StartNATSConnectJob(queueSubscribe func() error) error {
 		gocron.NewTask(
 			func() {
 				if w.NATSConnection == nil {
-					w.NATSConnection, err = openuem_nats.ConnectWithNATS(w.NATSServers, w.ClientCertPath, w.ClientKeyPath, w.CACertPath)
+					w.NATSConnection, err = nats.ConnectWithNATS(w.NATSServers, w.ClientCertPath, w.ClientKeyPath, w.CACertPath)
 					if err != nil {
 						log.Printf("[ERROR]: could not connect to NATS %v", err)
 						return

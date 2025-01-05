@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/open-uem/openuem-worker/internal/common"
-	"github.com/open-uem/openuem_utils"
+	"github.com/open-uem/utils"
 	"github.com/urfave/cli/v2"
 )
 
@@ -62,7 +62,7 @@ func startCertManagerWorker(cCtx *cli.Context) error {
 	}
 
 	caKeyPath := filepath.Join(cwd, cCtx.String("cakey"))
-	worker.CAPrivateKey, err = openuem_utils.ReadPEMPrivateKey(caKeyPath)
+	worker.CAPrivateKey, err = utils.ReadPEMPrivateKey(caKeyPath)
 	if err != nil {
 		return err
 	}

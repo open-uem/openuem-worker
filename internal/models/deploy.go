@@ -3,12 +3,12 @@ package models
 import (
 	"context"
 
-	"github.com/open-uem/openuem_ent/agent"
-	"github.com/open-uem/openuem_ent/deployment"
-	"github.com/open-uem/openuem_nats"
+	"github.com/open-uem/ent/agent"
+	"github.com/open-uem/ent/deployment"
+	"github.com/open-uem/nats"
 )
 
-func (m *Model) SaveDeployInfo(data *openuem_nats.DeployAction) error {
+func (m *Model) SaveDeployInfo(data *nats.DeployAction) error {
 
 	if data.Action == "install" {
 		return m.Client.Deployment.Update().

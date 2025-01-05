@@ -9,11 +9,11 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/nats-io/nats.go"
+	"github.com/open-uem/ent"
+	"github.com/open-uem/ent/server"
+	openuem_nats "github.com/open-uem/nats"
 	"github.com/open-uem/openuem-worker/internal/models"
-	"github.com/open-uem/openuem_ent"
-	"github.com/open-uem/openuem_ent/server"
-	"github.com/open-uem/openuem_nats"
-	"github.com/open-uem/openuem_utils"
+	"github.com/open-uem/utils"
 )
 
 type Worker struct {
@@ -35,8 +35,8 @@ type Worker struct {
 	CertBytes              []byte
 	PrivateKey             *rsa.PrivateKey
 	CertRequest            *openuem_nats.CertificateRequest
-	Settings               *openuem_ent.Settings
-	Logger                 *openuem_utils.OpenUEMLogger
+	Settings               *ent.Settings
+	Logger                 *utils.OpenUEMLogger
 	ConsoleURL             string
 	OCSPResponders         []string
 	JetstreamContextCancel context.CancelFunc
@@ -48,7 +48,7 @@ type Worker struct {
 func NewWorker(logName string) *Worker {
 	worker := Worker{}
 	if logName != "" {
-		worker.Logger = openuem_utils.NewLogger(logName)
+		worker.Logger = utils.NewLogger(logName)
 	}
 
 	return &worker

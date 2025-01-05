@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go/jetstream"
-	"github.com/open-uem/openuem_ent"
+	"github.com/open-uem/ent"
 )
 
 func (w *Worker) SubscribeToNotificationWorkerQueues() error {
@@ -29,7 +29,7 @@ func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 	// read SMTP settings from database
 	w.Settings, err = w.Model.GetSettings()
 	if err != nil {
-		if openuem_ent.IsNotFound(err) {
+		if ent.IsNotFound(err) {
 			log.Println("[INFO]: no SMTP settings found")
 		} else {
 			log.Printf("[ERROR]: could not get settings from DB, reason: %v", err)

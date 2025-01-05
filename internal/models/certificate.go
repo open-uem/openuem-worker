@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/open-uem/openuem_ent"
-	"github.com/open-uem/openuem_ent/certificate"
+	"github.com/open-uem/ent"
+	"github.com/open-uem/ent/certificate"
 	"golang.org/x/crypto/ocsp"
 )
 
@@ -33,7 +33,7 @@ func (m *Model) SaveCertificate(serial int64, certType certificate.Type, uid, de
 func (m *Model) RevokePreviousCertificates(description string) error {
 	cert, err := m.Client.Certificate.Query().Where(certificate.DescriptionEQ(description)).Only(context.Background())
 	if err != nil {
-		if openuem_ent.IsNotFound(err) {
+		if ent.IsNotFound(err) {
 			return nil
 		}
 		return err

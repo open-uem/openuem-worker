@@ -6,12 +6,12 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/open-uem/openuem_ent"
-	"github.com/open-uem/openuem_nats"
+	"github.com/open-uem/ent"
+	"github.com/open-uem/nats"
 	"github.com/wneessen/go-mail"
 )
 
-func PrepareMessage(notification *openuem_nats.Notification, settings *openuem_ent.Settings) (*mail.Msg, error) {
+func PrepareMessage(notification *nats.Notification, settings *ent.Settings) (*mail.Msg, error) {
 	if notification.From == "" {
 		if settings.MessageFrom != "" {
 			notification.From = settings.MessageFrom
@@ -61,7 +61,7 @@ func PrepareMessage(notification *openuem_nats.Notification, settings *openuem_e
 	return m, nil
 }
 
-func PrepareSMTPClient(settings *openuem_ent.Settings) (*mail.Client, error) {
+func PrepareSMTPClient(settings *ent.Settings) (*mail.Client, error) {
 	var err error
 	var c *mail.Client
 	if settings.SMTPAuth == "NOAUTH" || (settings.SMTPUser == "" && settings.SMTPPassword == "") {

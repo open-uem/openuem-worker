@@ -1,8 +1,8 @@
 package notifications
 
-import "github.com/open-uem/openuem_nats"
+import "github.com/open-uem/nats"
 
-templ EmailTemplate(notification *openuem_nats.Notification) {
+templ EmailTemplate(notification *nats.Notification) {
 	<!DOCTYPE html>
 	<html lang="und" dir="auto" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 		<head>

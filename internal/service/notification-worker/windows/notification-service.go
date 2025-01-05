@@ -6,13 +6,13 @@ import (
 	"log"
 
 	"github.com/open-uem/openuem-worker/internal/common"
-	"github.com/open-uem/openuem_utils"
+	"github.com/open-uem/utils"
 	"golang.org/x/sys/windows/svc"
 )
 
 func main() {
 	w := common.NewWorker("openuem-notification-worker.txt")
-	s := openuem_utils.NewOpenUEMWindowsService()
+	s := utils.NewOpenUEMWindowsService()
 
 	// Get config for service
 	if err := w.GenerateCommonWorkerConfig("notification-worker"); err != nil {

@@ -4,7 +4,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/open-uem/openuem_utils"
+	"github.com/open-uem/utils"
 	"gopkg.in/ini.v1"
 )
 
@@ -12,7 +12,7 @@ func (w *Worker) GenerateCommonWorkerConfig(c string) error {
 	var err error
 
 	// Get conf file
-	configFile := openuem_utils.GetConfigFile()
+	configFile := utils.GetConfigFile()
 
 	// Open ini file
 	cfg, err := ini.Load(configFile)
@@ -20,7 +20,7 @@ func (w *Worker) GenerateCommonWorkerConfig(c string) error {
 		return err
 	}
 
-	w.DBUrl, err = openuem_utils.CreatePostgresDatabaseURL()
+	w.DBUrl, err = utils.CreatePostgresDatabaseURL()
 	if err != nil {
 		log.Printf("[ERROR]: %v", err)
 		return err
@@ -77,7 +77,7 @@ func (w *Worker) GenerateCertManagerWorkerConfig() error {
 	var err error
 
 	// Get conf file
-	configFile := openuem_utils.GetConfigFile()
+	configFile := utils.GetConfigFile()
 
 	// Open ini file
 	cfg, err := ini.Load(configFile)
@@ -109,13 +109,13 @@ func (w *Worker) GenerateCertManagerWorkerConfig() error {
 	w.OCSPResponders = ocspServers
 
 	// read required certificates and private keys
-	w.CACert, err = openuem_utils.ReadPEMCertificate(w.CACertPath)
+	w.CACert, err = utils.ReadPEMCertificate(w.CACertPath)
 	if err != nil {
 		log.Println("[ERROR]: could not read CA cert file")
 		return err
 	}
 
-	w.CAPrivateKey, err = openuem_utils.ReadPEMPrivateKey(w.CAKeyPath)
+	w.CAPrivateKey, err = utils.ReadPEMPrivateKey(w.CAKeyPath)
 	if err != nil {
 		log.Println("[ERROR]: could not read CA private key file")
 		return err

@@ -7,32 +7,32 @@ import (
 	"log"
 	"time"
 
-	"github.com/open-uem/openuem_ent"
-	"github.com/open-uem/openuem_ent/agent"
-	"github.com/open-uem/openuem_ent/antivirus"
-	"github.com/open-uem/openuem_ent/app"
-	"github.com/open-uem/openuem_ent/computer"
-	"github.com/open-uem/openuem_ent/logicaldisk"
-	"github.com/open-uem/openuem_ent/monitor"
-	"github.com/open-uem/openuem_ent/networkadapter"
-	"github.com/open-uem/openuem_ent/operatingsystem"
-	"github.com/open-uem/openuem_ent/printer"
-	"github.com/open-uem/openuem_ent/release"
-	"github.com/open-uem/openuem_ent/settings"
-	"github.com/open-uem/openuem_ent/share"
-	"github.com/open-uem/openuem_ent/systemupdate"
-	"github.com/open-uem/openuem_ent/update"
-	"github.com/open-uem/openuem_nats"
-	"github.com/open-uem/openuem_utils"
+	"github.com/open-uem/ent"
+	"github.com/open-uem/ent/agent"
+	"github.com/open-uem/ent/antivirus"
+	"github.com/open-uem/ent/app"
+	"github.com/open-uem/ent/computer"
+	"github.com/open-uem/ent/logicaldisk"
+	"github.com/open-uem/ent/monitor"
+	"github.com/open-uem/ent/networkadapter"
+	"github.com/open-uem/ent/operatingsystem"
+	"github.com/open-uem/ent/printer"
+	"github.com/open-uem/ent/release"
+	"github.com/open-uem/ent/settings"
+	"github.com/open-uem/ent/share"
+	"github.com/open-uem/ent/systemupdate"
+	"github.com/open-uem/ent/update"
+	"github.com/open-uem/nats"
+	"github.com/open-uem/utils"
 )
 
-func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
+func (m *Model) SaveAgentInfo(data *nats.AgentReport) error {
 	ctx := context.Background()
 
 	exists := true
 	existingAgent, err := m.Client.Agent.Query().Where(agent.ID(data.AgentID)).First(ctx)
 	if err != nil {
-		if !openuem_ent.IsNotFound(err) {
+		if !ent.IsNotFound(err) {
 			return err
 		} else {
 			exists = false
@@ -66,17 +66,17 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 			query.SetUpdateTaskExecution(data.LastUpdateTaskExecutionTime)
 			if existingAgent.UpdateTaskVersion == data.Release.Version {
 				if data.LastUpdateTaskStatus == "admin.update.agents.task_status_success" {
-					query.SetUpdateTaskStatus(openuem_nats.UPDATE_SUCCESS)
+					query.SetUpdateTaskStatus(nats.UPDATE_SUCCESS)
 					query.SetUpdateTaskResult("")
 				}
 
 				if data.LastUpdateTaskStatus == "admin.update.agents.task_status_error" {
-					query.SetUpdateTaskStatus(openuem_nats.UPDATE_ERROR)
+					query.SetUpdateTaskStatus(nats.UPDATE_ERROR)
 					query.SetUpdateTaskResult(data.LastUpdateTaskResult)
 				}
 
 			} else {
-				query.SetUpdateTaskStatus(openuem_nats.UPDATE_ERROR)
+				query.SetUpdateTaskStatus(nats.UPDATE_ERROR)
 				if data.LastUpdateTaskResult != "" {
 					query.SetUpdateTaskResult(data.LastUpdateTaskResult)
 				}
@@ -103,7 +103,7 @@ func (m *Model) SaveAgentInfo(data *openuem_nats.AgentReport) error {
 	}
 }
 
-func (m *Model) SaveComputerInfo(data *openuem_nats.AgentReport) error {
+func (m *Model) SaveComputerInfo(data *nats.AgentReport) error {
 	return m.Client.Computer.
 		Create().
 		SetManufacturer(data.Computer.Manufacturer).
@@ -119,7 +119,7 @@ func (m *Model) SaveComputerInfo(data *openuem_nats.AgentReport) error {
 		Exec(context.Background())
 }
 
-func (m *Model) SaveOSInfo(data *openuem_nats.AgentReport) error {
+func (m *Model) SaveOSInfo(data *nats.AgentReport) error {
 	return m.Client.OperatingSystem.
 		Create().
 		SetType(data.OS).
@@ -136,7 +136,7 @@ func (m *Model) SaveOSInfo(data *openuem_nats.AgentReport) error {
 		Exec(context.Background())
 }
 
-func (m *Model) SaveAntivirusInfo(data *openuem_nats.AgentReport) error {
+func (m *Model) SaveAntivirusInfo(data *nats.AgentReport) error {
 	return m.Client.Antivirus.
 		Create().
 		SetName(data.Antivirus.Name).
@@ -148,7 +148,7 @@ func (m *Model) SaveAntivirusInfo(data *openuem_nats.AgentReport) error {
 		Exec(context.Background())
 }
 
-func (m *Model) SaveSystemUpdateInfo(data *openuem_nats.AgentReport) error {
+func (m *Model) SaveSystemUpdateInfo(data *nats.AgentReport) error {
 	return m.Client.SystemUpdate.
 		Create().
 		SetSystemUpdateStatus(data.SystemUpdate.Status).
@@ -161,7 +161,7 @@ func (m *Model) SaveSystemUpdateInfo(data *openuem_nats.AgentReport) error {
 		Exec(context.Background())
 }
 
-func (m *Model) SaveAppsInfo(data *openuem_nats.AgentReport) error {
+func (m *Model) SaveAppsInfo(data *nats.AgentReport) error {
 	ctx := context.Background()
 
 	tx, err := m.Client.Tx(ctx)
@@ -191,7 +191,7 @@ func (m *Model) SaveAppsInfo(data *openuem_nats.AgentReport) error {
 	return tx.Commit()
 }
 
-func (m *Model) SaveMonitorsInfo(data *openuem_nats.AgentReport) error {
+func (m *Model) SaveMonitorsInfo(data *nats.AgentReport) error {
 	ctx := context.Background()
 
 	tx, err := m.Client.Tx(ctx)
@@ -220,7 +220,7 @@ func (m *Model) SaveMonitorsInfo(data *openuem_nats.AgentReport) error {
 	return tx.Commit()
 }
 
-func (m *Model) SaveLogicalDisksInfo(data *openuem_nats.AgentReport) error {
+func (m *Model) SaveLogicalDisksInfo(data *nats.AgentReport) error {
 	ctx := context.Background()
 
 	tx, err := m.Client.Tx(ctx)
@@ -252,7 +252,7 @@ func (m *Model) SaveLogicalDisksInfo(data *openuem_nats.AgentReport) error {
 	return tx.Commit()
 }
 
-func (m *Model) SavePrintersInfo(data *openuem_nats.AgentReport) error {
+func (m *Model) SavePrintersInfo(data *nats.AgentReport) error {
 	ctx := context.Background()
 
 	tx, err := m.Client.Tx(ctx)
@@ -282,7 +282,7 @@ func (m *Model) SavePrintersInfo(data *openuem_nats.AgentReport) error {
 	return tx.Commit()
 }
 
-func (m *Model) SaveNetworkAdaptersInfo(data *openuem_nats.AgentReport) error {
+func (m *Model) SaveNetworkAdaptersInfo(data *nats.AgentReport) error {
 	ctx := context.Background()
 
 	tx, err := m.Client.Tx(ctx)
@@ -319,7 +319,7 @@ func (m *Model) SaveNetworkAdaptersInfo(data *openuem_nats.AgentReport) error {
 	return tx.Commit()
 }
 
-func (m *Model) SaveSharesInfo(data *openuem_nats.AgentReport) error {
+func (m *Model) SaveSharesInfo(data *nats.AgentReport) error {
 	ctx := context.Background()
 
 	tx, err := m.Client.Tx(ctx)
@@ -348,7 +348,7 @@ func (m *Model) SaveSharesInfo(data *openuem_nats.AgentReport) error {
 	return tx.Commit()
 }
 
-func (m *Model) SaveUpdatesInfo(data *openuem_nats.AgentReport) error {
+func (m *Model) SaveUpdatesInfo(data *nats.AgentReport) error {
 	ctx := context.Background()
 
 	tx, err := m.Client.Tx(ctx)
@@ -388,9 +388,9 @@ func (m *Model) GetDefaultAgentFrequency() (int, error) {
 	return settings.AgentReportFrequenceInMinutes, nil
 }
 
-func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
+func (m *Model) SaveReleaseInfo(data *nats.AgentReport) error {
 	var err error
-	var r *openuem_ent.Release
+	var r *ent.Release
 	releaseExists := false
 
 	r, err = m.Client.Release.Query().
@@ -400,7 +400,7 @@ func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
 
 	// First check if the release is in our database
 	if err != nil {
-		if !openuem_ent.IsNotFound(err) {
+		if !ent.IsNotFound(err) {
 			return err
 		}
 	} else {
@@ -412,12 +412,12 @@ func (m *Model) SaveReleaseInfo(data *openuem_nats.AgentReport) error {
 		// Get release info from API
 		url := fmt.Sprintf("https://releases.openuem.eu/api?action=agentReleaseInfo&version=%s", data.Release.Version)
 
-		body, err := openuem_utils.QueryReleasesEndpoint(url)
+		body, err := utils.QueryReleasesEndpoint(url)
 		if err != nil {
 			return err
 		}
 
-		releaseFromApi := openuem_nats.OpenUEMRelease{}
+		releaseFromApi := nats.OpenUEMRelease{}
 		if err := json.Unmarshal(body, &releaseFromApi); err != nil {
 			return err
 		}

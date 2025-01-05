@@ -7,9 +7,9 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
+	"github.com/open-uem/ent"
+	openuem_nats "github.com/open-uem/nats"
 	"github.com/open-uem/openuem-worker/internal/common/notifications"
-	"github.com/open-uem/openuem_ent"
-	"github.com/open-uem/openuem_nats"
 )
 
 func (w *Worker) JetStreamNotificationsHandler(msg jetstream.Msg) {
@@ -110,7 +110,7 @@ func (w *Worker) ReloadSettingsHandler(msg *nats.Msg) {
 	// read again SMTP settings from database
 	w.Settings, err = w.Model.GetSettings()
 	if err != nil {
-		if openuem_ent.IsNotFound(err) {
+		if ent.IsNotFound(err) {
 			log.Println("[INFO]: no SMTP settings found")
 		} else {
 			log.Printf("[ERROR]: could not get settings from DB, reason: %v", err)

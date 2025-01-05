@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/nats-io/nats.go"
-	"github.com/open-uem/openuem_nats"
+	openuem_nats "github.com/open-uem/nats"
 )
 
 func (w *Worker) SubscribeToAgentWorkerQueues() error {
