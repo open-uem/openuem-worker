@@ -459,8 +459,21 @@ func (m *Model) SaveReleaseInfo(data *nats.AgentReport) error {
 			}
 		}
 
-		// Finally connect the release with the agent if new
+		// Finally connect the release with the agent if new, and disconnect from previous release
 		if newAgent {
+
+			existingAgent, err := m.Client.Agent.Query().WithRelease().Where(agent.ID(data.AgentID)).First(context.Background())
+			if err != nil {
+				return err
+			}
+
+			if existingAgent.Edges.Release != nil {
+				previousReleaseID := existingAgent.Edges.Release.ID
+				if err := m.Client.Release.UpdateOneID(previousReleaseID).RemoveAgentIDs(data.AgentID).Exec(context.Background()); err != nil {
+					return err
+				}
+			}
+
 			if err := m.Client.Release.UpdateOneID(r.ID).AddAgentIDs(data.AgentID).Exec(context.Background()); err != nil {
 				return err
 			}
