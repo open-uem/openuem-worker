@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/go-co-op/gocron/v2"
 	"github.com/open-uem/openuem-worker/internal/common"
 	"github.com/open-uem/utils"
 	"github.com/urfave/cli/v2"
@@ -53,6 +54,8 @@ func StartCertManagerWorkerFlags() []cli.Flag {
 }
 
 func startCertManagerWorker(cCtx *cli.Context) error {
+	var err error
+
 	worker := common.NewWorker("")
 
 	// Specific requisites
@@ -81,6 +84,14 @@ func startCertManagerWorker(cCtx *cli.Context) error {
 	if err := os.WriteFile("PIDFILE", []byte(strconv.Itoa(os.Getpid())), 0666); err != nil {
 		return err
 	}
+
+	// Start Task Scheduler
+	worker.TaskScheduler, err = gocron.NewScheduler()
+	if err != nil {
+		log.Fatalf("[FATAL]: could not create task scheduler, reason: %v", err)
+	}
+	worker.TaskScheduler.Start()
+	log.Println("[INFO]: task scheduler has been started")
 
 	worker.StartWorker(worker.SubscribeToCertManagerWorkerQueues)
 

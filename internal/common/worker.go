@@ -22,6 +22,7 @@ type Worker struct {
 	NATSServers            string
 	DBUrl                  string
 	DBConnectJob           gocron.Job
+	ConfigJob              gocron.Job
 	TaskScheduler          gocron.Scheduler
 	Model                  *models.Model
 	CACert                 *x509.Certificate
@@ -55,17 +56,6 @@ func NewWorker(logName string) *Worker {
 }
 
 func (w *Worker) StartWorker(subscription func() error) {
-	var err error
-
-	// Start Task Scheduler
-	w.TaskScheduler, err = gocron.NewScheduler()
-	if err != nil {
-		log.Fatalf("[FATAL]: could not create task scheduler, reason: %v", err)
-		return
-	}
-	w.TaskScheduler.Start()
-	log.Println("[INFO]: task scheduler has been started")
-
 	// Start a job to try to connect with the database
 	if err := w.StartDBConnectJob(subscription); err != nil {
 		log.Fatalf("[FATAL]: could not start DB connect job, reason: %v", err)

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/go-co-op/gocron/v2"
 	"github.com/open-uem/openuem-worker/internal/common"
 	"github.com/urfave/cli/v2"
 )
@@ -32,11 +33,21 @@ func NotificationsWorker() *cli.Command {
 }
 
 func startNotificationsWorker(cCtx *cli.Context) error {
+	var err error
+
 	worker := common.NewWorker("")
 
 	if err := worker.CheckCLICommonRequisites(cCtx); err != nil {
 		log.Printf("[ERROR]: could not generate config for Notification Worker: %v", err)
 	}
+
+	// Start Task Scheduler
+	worker.TaskScheduler, err = gocron.NewScheduler()
+	if err != nil {
+		log.Fatalf("[FATAL]: could not create task scheduler, reason: %v", err)
+	}
+	worker.TaskScheduler.Start()
+	log.Println("[INFO]: task scheduler has been started")
 
 	worker.StartWorker(worker.SubscribeToNotificationWorkerQueues)
 

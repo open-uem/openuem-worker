@@ -3,7 +3,9 @@ package common
 import (
 	"log"
 	"strings"
+	"time"
 
+	"github.com/go-co-op/gocron/v2"
 	"github.com/open-uem/utils"
 	"gopkg.in/ini.v1"
 )
@@ -121,5 +123,41 @@ func (w *Worker) GenerateCertManagerWorkerConfig() error {
 		return err
 	}
 
+	return nil
+}
+
+func (w *Worker) StartGenerateWorkerConfigJob(workerName string, common bool) error {
+	var err error
+
+	// Create task for getting the worker config
+	w.ConfigJob, err = w.TaskScheduler.NewJob(
+		gocron.DurationJob(
+			time.Duration(time.Duration(1*time.Minute)),
+		),
+		gocron.NewTask(
+			func() {
+				if common {
+					err = w.GenerateCommonWorkerConfig(workerName)
+				} else {
+					err = w.GenerateCertManagerWorkerConfig()
+				}
+				if err != nil {
+					log.Printf("[ERROR]: could not generate config for worker, reason: %v", err)
+					return
+				}
+
+				log.Println("[INFO]: worker's config has been successfully generated")
+				if err := w.TaskScheduler.RemoveJob(w.ConfigJob.ID()); err != nil {
+					return
+				}
+				return
+			},
+		),
+	)
+	if err != nil {
+		log.Fatalf("[FATAL]: could not start the generate worker config job: %v", err)
+		return err
+	}
+	log.Printf("[INFO]: new generate worker config job has been scheduled every %d minute", 1)
 	return nil
 }
