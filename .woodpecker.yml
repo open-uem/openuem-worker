@@ -10,7 +10,7 @@ steps:
       repo: openuem/openuem-worker
       tags:
         - latest
-        - 0.1.1
+        - 0.2.0
       username:
         from_secret: docker_username
       password:
