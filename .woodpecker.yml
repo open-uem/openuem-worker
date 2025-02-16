@@ -6,11 +6,11 @@ steps:
   publish:
     image: woodpeckerci/plugin-docker-buildx
     settings:
-      platforms: linux/amd64,linux/arm64
+      platforms: linux/amd64
       repo: openuem/openuem-worker
       tags:
         - latest
-        - 0.2.0
+        - 0.2.1
       username:
         from_secret: docker_username
       password:
