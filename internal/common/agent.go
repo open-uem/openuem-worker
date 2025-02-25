@@ -46,7 +46,7 @@ func (w *Worker) ReportReceivedHandler(msg *nats.Msg) {
 		log.Printf("[ERROR]: could not unmarshal agent report, reason: %s\n", err.Error())
 	}
 
-	if err := w.Model.SaveAgentInfo(&data); err != nil {
+	if err := w.Model.SaveAgentInfo(&data, w.NATSServers); err != nil {
 		log.Printf("[ERROR]: could not save agent info into database, reason: %s\n", err.Error())
 	}
 

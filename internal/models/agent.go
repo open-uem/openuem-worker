@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/open-uem/ent"
@@ -26,7 +29,7 @@ import (
 	"github.com/open-uem/utils"
 )
 
-func (m *Model) SaveAgentInfo(data *nats.AgentReport) error {
+func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string) error {
 	ctx := context.Background()
 
 	exists := true
@@ -39,6 +42,8 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport) error {
 		}
 	}
 
+	isRemoteAgent := checkIfRemote(data, servers)
+
 	query := m.Client.Agent.Create().
 		SetID(data.AgentID).
 		SetOs(data.OS).
@@ -48,7 +53,8 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport) error {
 		SetVnc(data.SupportedVNCServer).
 		SetVncProxyPort(data.VNCProxyPort).
 		SetSftpPort(data.SFTPPort).
-		SetCertificateReady(data.CertificateReady)
+		SetCertificateReady(data.CertificateReady).
+		SetIsRemote(isRemoteAgent)
 
 	if exists {
 		// Status
@@ -485,4 +491,33 @@ func (m *Model) SaveReleaseInfo(data *nats.AgentReport) error {
 
 func (m *Model) SetAgentIsWaitingForAdmissionAgain(agentId string) error {
 	return m.Client.Agent.Update().SetAgentStatus(agent.AgentStatusWaitingForAdmission).Where(agent.ID(agentId)).Exec(context.Background())
+}
+
+func checkIfRemote(data *nats.AgentReport, servers string) bool {
+
+	// Try to parse the NATS servers to get the domain
+	serversHostnames := strings.Split(servers, ",")
+	if len(serversHostnames) == 0 {
+		return false
+	}
+	serverDomain := strings.Split(serversHostnames[0], ".")
+	if len(serverDomain) < 2 {
+		return false
+	}
+	domain := strings.Split(strings.Replace(serversHostnames[0], serverDomain[0], "", 1), ":")[0]
+
+	// Check if we can find the DNS record for the agent
+	addresses, err := net.LookupHost(strings.ToLower(data.Hostname) + domain)
+	if err != nil {
+		log.Printf("[ERROR]: there was an issue trying to lookup host, reason: %v", err)
+		return false
+	}
+
+	// If DNS lookup does not get addresses, we cannot be sure that the agent is in a remote location
+	if len(addresses) == 0 {
+		return false
+	}
+
+	// If the agent's IP address is not contained in the addresses list resolved by DNS, the agent is in a remote location
+	return !slices.Contains(addresses, data.IP)
 }
