@@ -494,6 +494,14 @@ func (m *Model) SetAgentIsWaitingForAdmissionAgain(agentId string) error {
 }
 
 func checkIfRemote(data *nats.AgentReport, servers string) bool {
+	// Check if agent's IP is IPv6 and ignore if it is
+	ip := net.ParseIP(data.IP)
+	if ip == nil {
+		return false
+	}
+	if ip.To4() == nil {
+		return false
+	}
 
 	// Try to parse the NATS servers to get the domain
 	serversHostnames := strings.Split(servers, ",")
@@ -510,11 +518,6 @@ func checkIfRemote(data *nats.AgentReport, servers string) bool {
 	addresses, err := net.LookupHost(strings.ToLower(data.Hostname) + domain)
 	if err != nil {
 		log.Printf("[ERROR]: there was an issue trying to lookup host, reason: %v", err)
-		return false
-	}
-
-	// If DNS lookup does not get addresses, we cannot be sure that the agent is in a remote location
-	if len(addresses) == 0 {
 		return false
 	}
 
