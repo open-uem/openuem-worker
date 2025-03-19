@@ -150,7 +150,6 @@ func (w *Worker) StartGenerateWorkerConfigJob(workerName string, common bool) er
 				if err := w.TaskScheduler.RemoveJob(w.ConfigJob.ID()); err != nil {
 					return
 				}
-				return
 			},
 		),
 	)

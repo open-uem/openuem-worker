@@ -16,7 +16,6 @@ func (w *Worker) StartNATSConnectJob(queueSubscribe func() error) error {
 		if err := queueSubscribe(); err == nil {
 			return err
 		}
-		return nil
 	}
 	log.Printf("[ERROR]: could not connect to NATS servers in %s, reason: %v\n", w.NATSServers, err)
 

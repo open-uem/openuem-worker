@@ -44,7 +44,6 @@ func (w *Worker) StartDBConnectJob(subscription func() error) error {
 				if err := w.StartNATSConnectJob(subscription); err != nil {
 					log.Fatalf("[FATAL]: could not start NATS connect job, reason: %v", err)
 				}
-				return
 			},
 		),
 	)

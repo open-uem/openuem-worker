@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/open-uem/ent"
 	"github.com/open-uem/ent/server"
 	openuem_nats "github.com/open-uem/nats"
@@ -44,6 +45,7 @@ type Worker struct {
 	Version                string
 	Channel                server.Channel
 	Replicas               int
+	Jetstream              jetstream.JetStream
 }
 
 func NewWorker(logName string) *Worker {
@@ -108,6 +110,15 @@ func (w *Worker) AgentConfigHandler(msg *nats.Msg) {
 		config.Ok = true
 	}
 
+	wingetFrequency, err := w.Model.GetWingetFrequency()
+	if err != nil {
+		log.Printf("[ERROR]: could not get winget frequency, reason: %v", err)
+		config.Ok = false
+	} else {
+		config.WinGetFrequency = wingetFrequency
+		config.Ok = true
+	}
+
 	data, err := json.Marshal(config)
 	if err != nil {
 		log.Printf("[ERROR]: could not marshal config data, reason: %v", err)
@@ -117,5 +128,4 @@ func (w *Worker) AgentConfigHandler(msg *nats.Msg) {
 	if err := msg.Respond(data); err != nil {
 		log.Printf("[ERROR]: could not respond with agent config, reason: %v", err)
 	}
-	return
 }
