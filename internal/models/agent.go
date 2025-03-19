@@ -394,6 +394,17 @@ func (m *Model) GetDefaultAgentFrequency() (int, error) {
 	return settings.AgentReportFrequenceInMinutes, nil
 }
 
+func (m *Model) GetWingetFrequency() (int, error) {
+	var err error
+
+	settings, err := m.Client.Settings.Query().Select(settings.FieldProfilesApplicationFrequenceInMinutes).Only(context.Background())
+	if err != nil {
+		return 0, err
+	}
+
+	return settings.ProfilesApplicationFrequenceInMinutes, nil
+}
+
 func (m *Model) SaveReleaseInfo(data *nats.AgentReport) error {
 	var err error
 	var r *ent.Release
