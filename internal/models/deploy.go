@@ -53,7 +53,7 @@ func (m *Model) SaveDeployInfo(data *nats.DeployAction) error {
 
 func (m *Model) SaveWinGetDeployInfo(data nats.DeployAction) error {
 
-	exists, err := m.Client.Deployment.Query().Where(deployment.PackageID(data.PackageId)).Exist(context.Background())
+	exists, err := m.Client.Deployment.Query().Where(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId))).Exist(context.Background())
 	if err != nil {
 		return err
 	}

@@ -63,8 +63,6 @@ func (m *Model) SaveProfileApplicationIssues(profileID int, agentID string, succ
 			if err != nil {
 				return err
 			}
-
-			return m.Client.Profile.UpdateOneID(profileID).AddIssueIDs(issue.ID).Exec(context.Background())
 		}
 
 		return m.Client.ProfileIssue.UpdateOneID(issue.ID).SetError(errorData).Exec(context.Background())

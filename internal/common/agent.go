@@ -364,6 +364,8 @@ func (w *Worker) WinGetCfgDeploymentReport(msg *nats.Msg) {
 		log.Println("[ERROR]: could not unmarshall WinGetCfg deployment action report from agent")
 	}
 
+	// log.Printf("[DEBUG]: deplou info: %v", deploy)
+
 	if err := w.Model.SaveWinGetDeployInfo(deploy); err != nil {
 		log.Printf("[ERROR]: could not save WinGetCfg deployment action report from agent, reason: %v", err)
 	}
@@ -404,6 +406,8 @@ func (w *Worker) WinGetCfgApplicationReport(msg *nats.Msg) {
 	if err := json.Unmarshal(msg.Data, &report); err != nil {
 		log.Println("[ERROR]: could not unmarshall WinGetCfg report from agent")
 	}
+
+	// log.Printf("[DEBUG]: wingetcfg.report data, %v", report)
 
 	if err := w.Model.SaveProfileApplicationIssues(report.ProfileID, report.AgentID, report.Success, report.Error); err != nil {
 		log.Printf("[ERROR]: could not save WinGetCfg profile issue, reason: %v", err)
