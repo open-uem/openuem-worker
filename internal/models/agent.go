@@ -54,6 +54,7 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string) error {
 		SetVncProxyPort(data.VNCProxyPort).
 		SetSftpPort(data.SFTPPort).
 		SetCertificateReady(data.CertificateReady).
+		SetDebugMode(data.DebugMode).
 		SetIsRemote(isRemoteAgent)
 
 	if exists {
