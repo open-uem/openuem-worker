@@ -246,6 +246,7 @@ func (m *Model) SaveLogicalDisksInfo(data *nats.AgentReport) error {
 			Create().
 			SetLabel(driveData.Label).
 			SetUsage(driveData.Usage).
+			SetVolumeName(driveData.VolumeName).
 			SetSizeInUnits(driveData.SizeInUnits).
 			SetFilesystem(driveData.Filesystem).
 			SetRemainingSpaceInUnits(driveData.RemainingSpaceInUnits).
