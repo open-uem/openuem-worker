@@ -17,6 +17,7 @@ func (m *Model) SaveDeployInfo(data *nats.DeployAction) error {
 		return m.Client.Deployment.Update().
 			SetInstalled(data.When).
 			SetUpdated(data.When).
+			SetFailed(data.Failed).
 			Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).
 			Exec(context.Background())
 	}
@@ -24,6 +25,7 @@ func (m *Model) SaveDeployInfo(data *nats.DeployAction) error {
 	if data.Action == "update" {
 		return m.Client.Deployment.Update().
 			SetUpdated(data.When).
+			SetFailed(data.Failed).
 			Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).
 			Exec(context.Background())
 	}
@@ -35,16 +37,25 @@ func (m *Model) SaveDeployInfo(data *nats.DeployAction) error {
 			return err
 		}
 
-		_, err = m.Client.Deployment.Delete().
-			Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).
-			Exec(context.Background())
-		if err != nil {
-			return err
-		}
+		// TODO: if package remove failed don't delete deployment, save error
+		if data.Failed {
+			return m.Client.Deployment.Update().
+				SetUpdated(data.When).
+				SetFailed(data.Failed).
+				Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).
+				Exec(context.Background())
+		} else {
+			_, err = m.Client.Deployment.Delete().
+				Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).
+				Exec(context.Background())
+			if err != nil {
+				return err
+			}
 
-		// If package was installed due to a profile, add a new exclusion as we've removed it using OpenUEM Console
-		if d.ByProfile {
-			return m.Client.WingetConfigExclusion.Create().SetPackageID(data.PackageId).SetOwnerID(data.AgentId).Exec(context.Background())
+			// If package was installed due to a profile, add a new exclusion as we've removed it using OpenUEM Console
+			if d.ByProfile {
+				return m.Client.WingetConfigExclusion.Create().SetPackageID(data.PackageId).SetOwnerID(data.AgentId).Exec(context.Background())
+			}
 		}
 	}
 
