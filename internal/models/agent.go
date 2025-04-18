@@ -55,7 +55,9 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string) error {
 		SetSftpPort(data.SFTPPort).
 		SetCertificateReady(data.CertificateReady).
 		SetDebugMode(data.DebugMode).
-		SetIsRemote(isRemoteAgent)
+		SetIsRemote(isRemoteAgent).
+		SetSftpService(!data.SftpServiceDisabled).
+		SetRemoteAssistance(!data.RemoteAssistanceDisabled)
 
 	if exists {
 		// Status
@@ -405,6 +407,54 @@ func (m *Model) GetWingetFrequency() (int, error) {
 	}
 
 	return settings.ProfilesApplicationFrequenceInMinutes, nil
+}
+
+func (m *Model) GetSFTPDisabledSettings() (bool, error) {
+	var err error
+
+	settings, err := m.Client.Settings.Query().Select(settings.FieldDisableSftp).Only(context.Background())
+	if err != nil {
+		return false, err
+	}
+
+	return settings.DisableSftp, nil
+}
+
+func (m *Model) GetSFTPAgentSetting(agentID string) (bool, error) {
+	agent, err := m.Client.Agent.Query().Select(agent.FieldSftpService).Where(agent.ID(agentID)).First(context.Background())
+	if err != nil {
+		return false, err
+	}
+
+	return agent.SftpService, nil
+}
+
+func (m *Model) SaveSFTPAgentSetting(agentID string, status bool) error {
+	return m.Client.Agent.UpdateOneID(agentID).SetSftpService(status).Exec(context.Background())
+}
+
+func (m *Model) GetRemoteAssistanceDisabledSettings() (bool, error) {
+	var err error
+
+	settings, err := m.Client.Settings.Query().Select(settings.FieldDisableRemoteAssistance).Only(context.Background())
+	if err != nil {
+		return false, err
+	}
+
+	return settings.DisableRemoteAssistance, nil
+}
+
+func (m *Model) GetRemoteAssistanceAgentSetting(agentID string) (bool, error) {
+	agent, err := m.Client.Agent.Query().Select(agent.FieldRemoteAssistance).Where(agent.ID(agentID)).First(context.Background())
+	if err != nil {
+		return false, err
+	}
+
+	return agent.RemoteAssistance, nil
+}
+
+func (m *Model) SaveRemoteAssistanceAgentSetting(agentID string, status bool) error {
+	return m.Client.Agent.UpdateOneID(agentID).SetRemoteAssistance(status).Exec(context.Background())
 }
 
 func (m *Model) SaveReleaseInfo(data *nats.AgentReport) error {

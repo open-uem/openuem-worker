@@ -101,6 +101,8 @@ func (w *Worker) PingHandler(msg *nats.Msg) {
 func (w *Worker) AgentConfigHandler(msg *nats.Msg) {
 	config := openuem_nats.Config{}
 
+	agentID := string(msg.Data)
+
 	frequency, err := w.Model.GetDefaultAgentFrequency()
 	if err != nil {
 		log.Printf("[ERROR]: could not get default frequency, reason: %v", err)
@@ -119,6 +121,30 @@ func (w *Worker) AgentConfigHandler(msg *nats.Msg) {
 		config.Ok = true
 	}
 
+	sftpStatus, err := w.Model.GetSFTPAgentSetting(agentID)
+	if err != nil {
+		log.Printf("[ERROR]: could not get SFTP service for agent, reason: %v", err)
+		config.Ok = false
+	} else {
+		config.SFTPDisabled = !sftpStatus
+		config.Ok = true
+		if err := w.Model.SaveSFTPAgentSetting(agentID, sftpStatus); err != nil {
+			log.Printf("[ERROR]: could not save Agent SFTP status, reason: %v", err)
+		}
+	}
+
+	remoteAssistance, err := w.Model.GetRemoteAssistanceAgentSetting(agentID)
+	if err != nil {
+		log.Printf("[ERROR]: could not get Remote Assistance for agent, reason: %v", err)
+		config.Ok = false
+	} else {
+		config.RemoteAssistanceDisabled = !remoteAssistance
+		config.Ok = true
+		if err := w.Model.SaveRemoteAssistanceAgentSetting(agentID, remoteAssistance); err != nil {
+			log.Printf("[ERROR]: could not save Agent Remote Assistance status, reason: %v", err)
+		}
+	}
+
 	data, err := json.Marshal(config)
 	if err != nil {
 		log.Printf("[ERROR]: could not marshal config data, reason: %v", err)
@@ -128,4 +154,5 @@ func (w *Worker) AgentConfigHandler(msg *nats.Msg) {
 	if err := msg.Respond(data); err != nil {
 		log.Printf("[ERROR]: could not respond with agent config, reason: %v", err)
 	}
+
 }
