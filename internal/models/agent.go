@@ -16,6 +16,7 @@ import (
 	"github.com/open-uem/ent/app"
 	"github.com/open-uem/ent/computer"
 	"github.com/open-uem/ent/logicaldisk"
+	"github.com/open-uem/ent/memoryslot"
 	"github.com/open-uem/ent/monitor"
 	"github.com/open-uem/ent/networkadapter"
 	"github.com/open-uem/ent/operatingsystem"
@@ -220,6 +221,40 @@ func (m *Model) SaveMonitorsInfo(data *nats.AgentReport) error {
 			SetManufacturer(monitorData.Manufacturer).
 			SetModel(monitorData.Model).
 			SetSerial(monitorData.Serial).
+			SetOwnerID(data.AgentID).
+			SetWeekOfManufacture(monitorData.WeekOfManufacture).
+			SetYearOfManufacture(monitorData.YearOfManufacture).
+			Exec(ctx); err != nil {
+			return tx.Rollback()
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (m *Model) SaveMemorySlotsInfo(data *nats.AgentReport) error {
+	ctx := context.Background()
+
+	tx, err := m.Client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.MemorySlot.Delete().Where(memoryslot.HasOwnerWith(agent.ID(data.AgentID))).Exec(ctx)
+	if err != nil {
+		log.Printf("could not delete previous memory slots information: %v", err)
+		return tx.Rollback()
+	}
+
+	for _, slotsData := range data.MemorySlots {
+		if err := tx.MemorySlot.
+			Create().
+			SetSlot(slotsData.Slot).
+			SetType(slotsData.MemoryType).
+			SetPartNumber(slotsData.PartNumber).
+			SetSerialNumber(slotsData.SerialNumber).
+			SetSize(slotsData.Size).
+			SetSpeed(slotsData.Speed).
 			SetOwnerID(data.AgentID).
 			Exec(ctx); err != nil {
 			return tx.Rollback()

@@ -118,6 +118,10 @@ func (w *Worker) ReportReceivedHandler(msg *nats.Msg) {
 		log.Printf("[ERROR]: could not save monitors info into database, reason: %v\n", err)
 	}
 
+	if err := w.Model.SaveMemorySlotsInfo(&data); err != nil {
+		log.Printf("[ERROR]: could not save memory slots info into database, reason: %v\n", err)
+	}
+
 	if err := w.Model.SaveLogicalDisksInfo(&data); err != nil {
 		log.Printf("[ERROR]: could not save logical disks info into database, reason: %v\n", err)
 	}
