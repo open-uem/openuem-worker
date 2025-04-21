@@ -255,6 +255,7 @@ func (m *Model) SaveMemorySlotsInfo(data *nats.AgentReport) error {
 			SetSerialNumber(slotsData.SerialNumber).
 			SetSize(slotsData.Size).
 			SetSpeed(slotsData.Speed).
+			SetManufacturer(slotsData.Manufacturer).
 			SetOwnerID(data.AgentID).
 			Exec(ctx); err != nil {
 			return tx.Rollback()
