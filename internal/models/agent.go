@@ -30,7 +30,7 @@ import (
 	"github.com/open-uem/utils"
 )
 
-func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string) error {
+func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string, autoAdmitAgents bool) error {
 	ctx := context.Background()
 
 	exists := true
@@ -104,6 +104,11 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string) error {
 			UpdateNewValues().
 			Exec(context.Background())
 	} else {
+		// This is a new agent, we must create a record and set enabled if auto admit agents is enabled
+		if autoAdmitAgents {
+			query.SetAgentStatus(agent.AgentStatusEnabled)
+		}
+
 		return query.
 			SetFirstContact(time.Now()).
 			SetLastContact(time.Now()).

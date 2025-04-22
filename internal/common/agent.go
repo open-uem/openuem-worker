@@ -90,7 +90,15 @@ func (w *Worker) ReportReceivedHandler(msg *nats.Msg) {
 		log.Printf("[ERROR]: could not unmarshal agent report, reason: %v\n", err)
 	}
 
-	if err := w.Model.SaveAgentInfo(&data, w.NATSServers); err != nil {
+	autoAdmitAgents := false
+	settings, err := w.Model.GetSettings()
+	if err != nil {
+		log.Printf("[ERROR]: could not get OpenUEM general settings, reason: %v\n", err)
+	} else {
+		autoAdmitAgents = settings.AutoAdmitAgents
+	}
+
+	if err := w.Model.SaveAgentInfo(&data, w.NATSServers, autoAdmitAgents); err != nil {
 		log.Printf("[ERROR]: could not save agent info into database, reason: %v\n", err.Error())
 	}
 
