@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/open-uem/ent"
 	"github.com/open-uem/nats"
@@ -64,10 +65,13 @@ func PrepareMessage(notification *nats.Notification, settings *ent.Settings) (*m
 func PrepareSMTPClient(settings *ent.Settings) (*mail.Client, error) {
 	var err error
 	var c *mail.Client
+
+	smtpServer := strings.TrimSpace(settings.SMTPServer)
+
 	if settings.SMTPAuth == "NOAUTH" || (settings.SMTPUser == "" && settings.SMTPPassword == "") {
-		c, err = mail.NewClient(settings.SMTPServer, mail.WithPort(settings.SMTPPort))
+		c, err = mail.NewClient(smtpServer, mail.WithPort(settings.SMTPPort))
 	} else {
-		c, err = mail.NewClient(settings.SMTPServer, mail.WithPort(settings.SMTPPort), mail.WithSMTPAuth(mail.SMTPAuthType(settings.SMTPAuth)),
+		c, err = mail.NewClient(smtpServer, mail.WithPort(settings.SMTPPort), mail.WithSMTPAuth(mail.SMTPAuthType(settings.SMTPAuth)),
 			mail.WithUsername(settings.SMTPUser), mail.WithPassword(settings.SMTPPassword))
 	}
 
