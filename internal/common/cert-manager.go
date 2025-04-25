@@ -27,31 +27,31 @@ func (w *Worker) SubscribeToCertManagerWorkerQueues() error {
 
 	_, err := w.NATSConnection.QueueSubscribe("certificates.user", "openuem-cert-manager", w.NewUserCertificateHandler)
 	if err != nil {
-		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
+		log.Printf("[ERROR]: could not subscribe to certificates.user, reason: %v", err)
 		return err
 	}
-	log.Printf("[INFO]: subscribed to queue ping")
+	log.Printf("[INFO]: subscribed to queue certificates.user")
 
 	_, err = w.NATSConnection.QueueSubscribe("certificates.revoke", "openuem-cert-manager", w.RevokeCertificateHandler)
 	if err != nil {
-		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
+		log.Printf("[ERROR]: could not subscribe to certificates.revoke, reason: %v", err)
 		return err
 	}
-	log.Printf("[INFO]: subscribed to queue ping")
+	log.Printf("[INFO]: subscribed to queue certificates.revoke")
 
-	_, err = w.NATSConnection.QueueSubscribe("certificates.agent.", "openuem-cert-manager", w.NewAgentCertificateHandler)
+	_, err = w.NATSConnection.QueueSubscribe("certificates.agent.*", "openuem-cert-manager", w.NewAgentCertificateHandler)
 	if err != nil {
-		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
+		log.Printf("[ERROR]: could not subscribe to certificates.agent.*, reason: %v", err)
 		return err
 	}
-	log.Printf("[INFO]: subscribed to queue ping")
+	log.Printf("[INFO]: subscribed to queue certificates.agent")
 
 	_, err = w.NATSConnection.QueueSubscribe("ping.certmanagerworker", "openuem-cert-manager", w.PingHandler)
 	if err != nil {
-		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
+		log.Printf("[ERROR]: could not subscribe to ping.certmanagerworker, reason: %v", err)
 		return err
 	}
-	log.Printf("[INFO]: subscribed to queue ping")
+	log.Printf("[INFO]: subscribed to queue ping.certmanagerworker")
 	return nil
 }
 

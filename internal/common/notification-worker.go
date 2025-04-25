@@ -22,7 +22,7 @@ func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 
 	_, err = w.NATSConnection.Subscribe("notification.reload_settings", w.ReloadSettingsHandler)
 	if err != nil {
-		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
+		log.Printf("[ERROR]: could not subscribe to notification.reload_settings, reason: %v", err)
 		return err
 	}
 	log.Println("[INFO]: subscribed to queue notification.reload_setting")
@@ -43,10 +43,10 @@ func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 
 	_, err = w.NATSConnection.QueueSubscribe("ping.notificationworker", "openuem-notification", w.PingHandler)
 	if err != nil {
-		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
+		log.Printf("[ERROR]: could not subscribe to ping.notificationworker, reason: %v", err)
 		return err
 	}
-	log.Printf("[INFO]: subscribed to queue ping")
+	log.Printf("[INFO]: subscribed to queue ping.notificationworker")
 
 	return nil
 }
