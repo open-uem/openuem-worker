@@ -3,7 +3,6 @@ package common
 import (
 	"archive/zip"
 	"bytes"
-	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -16,63 +15,36 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nats-io/nats.go/jetstream"
+	"github.com/nats-io/nats.go"
 	"github.com/open-uem/ent/certificate"
-	"github.com/open-uem/nats"
+
+	openuem_nats "github.com/open-uem/nats"
 	"github.com/open-uem/utils"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
 func (w *Worker) SubscribeToCertManagerWorkerQueues() error {
-	var ctx context.Context
 
-	hostname, err := os.Hostname()
+	_, err := w.NATSConnection.QueueSubscribe("certificates.user", "openuem-cert-manager", w.NewUserCertificateHandler)
 	if err != nil {
-		log.Printf("[ERROR]: could not get Hostname: %v", err)
+		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
 		return err
 	}
+	log.Printf("[INFO]: subscribed to queue ping")
 
-	js, err := jetstream.New(w.NATSConnection)
+	_, err = w.NATSConnection.QueueSubscribe("certificates.revoke", "openuem-cert-manager", w.RevokeCertificateHandler)
 	if err != nil {
-		log.Printf("[ERROR]: could not intantiate JetStream: %v", err)
+		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
 		return err
 	}
+	log.Printf("[INFO]: subscribed to queue ping")
 
-	ctx, w.JetstreamContextCancel = context.WithTimeout(context.Background(), 60*time.Minute)
-
-	certManagerStreamConfig := jetstream.StreamConfig{
-		Name:      "CERT_MANAGER_STREAM_WORKQUEUE",
-		Subjects:  []string{"certificates.user", "certificates.revoke", "certificates.agent.*"},
-		Retention: jetstream.WorkQueuePolicy,
-	}
-
-	if w.Replicas > 1 {
-		certManagerStreamConfig.Replicas = w.Replicas
-	}
-
-	s, err := js.CreateOrUpdateStream(ctx, certManagerStreamConfig)
+	_, err = w.NATSConnection.QueueSubscribe("certificates.agent.", "openuem-cert-manager", w.NewAgentCertificateHandler)
 	if err != nil {
-		log.Printf("[ERROR]: could not create stream: %v", err)
+		log.Printf("[ERROR]: could not subscribe to NATS message, reason: %v", err)
 		return err
 	}
-
-	c1, err := s.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
-		Durable:   "CertManagerConsumer" + hostname,
-		AckPolicy: jetstream.AckExplicitPolicy,
-	})
-	if err != nil {
-		log.Printf("[ERROR]: could not create Jetstream consumer: %v", err)
-		return err
-	}
-	// TODO stop consume context ()
-	_, err = c1.Consume(w.JetStreamCertManagerHandler, jetstream.ConsumeErrHandler(func(consumeCtx jetstream.ConsumeContext, err error) {
-		log.Printf("[ERROR]: consumer error: %v", err)
-	}))
-	if err != nil {
-		log.Printf("[ERROR]: could not start Cert Manager consumer: %v", err)
-		return err
-	}
-	log.Println("[INFO]: Cert Manager consumer is ready to serve")
+	log.Printf("[INFO]: subscribed to queue ping")
 
 	_, err = w.NATSConnection.QueueSubscribe("ping.certmanagerworker", "openuem-cert-manager", w.PingHandler)
 	if err != nil {
@@ -197,11 +169,11 @@ func (w *Worker) NewX509AgentCertificateTemplate() (*x509.Certificate, error) {
 	}, nil
 }
 
-func (w *Worker) NewUserCertificateHandler(msg jetstream.Msg) {
+func (w *Worker) NewUserCertificateHandler(msg *nats.Msg) {
 
 	// Read message
-	cr := nats.CertificateRequest{}
-	if err := json.Unmarshal(msg.Data(), &cr); err != nil {
+	cr := openuem_nats.CertificateRequest{}
+	if err := json.Unmarshal(msg.Data, &cr); err != nil {
 		log.Printf("[ERROR]: could not unmarshall new certificate request, reason: %v", err)
 		msg.NakWithDelay(5 * time.Minute)
 		return
@@ -246,10 +218,10 @@ func (w *Worker) NewUserCertificateHandler(msg jetstream.Msg) {
 	}
 }
 
-func (w *Worker) NewAgentCertificateHandler(msg jetstream.Msg) {
+func (w *Worker) NewAgentCertificateHandler(msg *nats.Msg) {
 	// Read message
-	cr := nats.CertificateRequest{}
-	if err := json.Unmarshal(msg.Data(), &cr); err != nil {
+	cr := openuem_nats.CertificateRequest{}
+	if err := json.Unmarshal(msg.Data, &cr); err != nil {
 		log.Printf("[ERROR]: could not unmarshall new certificate request, reason: %v", err)
 		msg.Ack()
 		return
@@ -268,7 +240,7 @@ func (w *Worker) NewAgentCertificateHandler(msg jetstream.Msg) {
 		return
 	}
 
-	certData, err := json.Marshal(nats.AgentCertificateData{
+	certData, err := json.Marshal(openuem_nats.AgentCertificateData{
 		CertBytes:       w.CertBytes,
 		PrivateKeyBytes: x509.MarshalPKCS1PrivateKey(w.PrivateKey),
 	})
@@ -303,7 +275,7 @@ func (w *Worker) NewAgentCertificateHandler(msg jetstream.Msg) {
 	}
 }
 
-func (w *Worker) RevokeCertificateHandler(msg jetstream.Msg) {
+func (w *Worker) RevokeCertificateHandler(msg *nats.Msg) {
 	if err := msg.Ack(); err != nil {
 		log.Println("[ERROR]: could not send response", err.Error())
 		return
@@ -334,7 +306,7 @@ func (w *Worker) SendCertificate() error {
 		return err
 	}
 
-	notification := nats.Notification{
+	notification := openuem_nats.Notification{
 		To:           w.CertRequest.Email,
 		Subject:      "Your certificate to log in to OpenUEM web console",
 		MessageTitle: "OpenUEM | Your certificate",
@@ -364,18 +336,4 @@ func (w *Worker) SendCertificate() error {
 	}
 
 	return nil
-}
-
-func (w *Worker) JetStreamCertManagerHandler(msg jetstream.Msg) {
-	if msg.Subject() == "certificates.user" {
-		w.NewUserCertificateHandler(msg)
-	}
-
-	if msg.Subject() == "certificates.revoke" {
-		w.RevokeCertificateHandler(msg)
-	}
-
-	if strings.Contains(msg.Subject(), "certificates.agent.") {
-		w.NewAgentCertificateHandler(msg)
-	}
 }

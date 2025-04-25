@@ -6,23 +6,12 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
-	"github.com/nats-io/nats.go/jetstream"
 	"github.com/open-uem/ent"
 	openuem_nats "github.com/open-uem/nats"
 	"github.com/open-uem/openuem-worker/internal/common/notifications"
 )
 
-func (w *Worker) JetStreamNotificationsHandler(msg jetstream.Msg) {
-	if msg.Subject() == "notification.confirm_email" {
-		w.JetStreamSendConfirmEmailHandler(msg)
-	}
-
-	if msg.Subject() == "notification.send_certificate" {
-		w.JetStreamSendUserCertificateHandler(msg)
-	}
-}
-
-func (w *Worker) JetStreamSendConfirmEmailHandler(msg jetstream.Msg) {
+func (w *Worker) SendConfirmEmailHandler(msg *nats.Msg) {
 	notification := openuem_nats.Notification{}
 
 	if w.Settings == nil {
@@ -31,7 +20,7 @@ func (w *Worker) JetStreamSendConfirmEmailHandler(msg jetstream.Msg) {
 		return
 	}
 
-	err := json.Unmarshal(msg.Data(), &notification)
+	err := json.Unmarshal(msg.Data, &notification)
 	if err != nil {
 		log.Printf("[ERROR]: could not unmarshal notification request, reason: %v", err.Error())
 		msg.NakWithDelay(5 * time.Minute)
@@ -63,7 +52,7 @@ func (w *Worker) JetStreamSendConfirmEmailHandler(msg jetstream.Msg) {
 	}
 }
 
-func (w *Worker) JetStreamSendUserCertificateHandler(msg jetstream.Msg) {
+func (w *Worker) SendUserCertificateHandler(msg *nats.Msg) {
 	notification := openuem_nats.Notification{}
 
 	if w.Settings == nil {
@@ -72,7 +61,7 @@ func (w *Worker) JetStreamSendUserCertificateHandler(msg jetstream.Msg) {
 		return
 	}
 
-	if err := json.Unmarshal(msg.Data(), &notification); err != nil {
+	if err := json.Unmarshal(msg.Data, &notification); err != nil {
 		log.Printf("[ERROR]: could not unmarshal notification request, reason: %v", err.Error())
 		msg.NakWithDelay(5 * time.Minute)
 		return
