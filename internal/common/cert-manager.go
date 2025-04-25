@@ -41,7 +41,7 @@ func (w *Worker) SubscribeToCertManagerWorkerQueues() error {
 	ctx, w.JetstreamContextCancel = context.WithTimeout(context.Background(), 60*time.Minute)
 
 	certManagerStreamConfig := jetstream.StreamConfig{
-		Name:      "CERT_MANAGER_STREAM",
+		Name:      "CERT_MANAGER_STREAM_WORKQUEUE",
 		Subjects:  []string{"certificates.user", "certificates.revoke", "certificates.agent.*"},
 		Retention: jetstream.WorkQueuePolicy,
 	}
