@@ -40,8 +40,9 @@ func (w *Worker) SubscribeToNotificationWorkerQueues() error {
 	ctx, w.JetstreamContextCancel = context.WithTimeout(context.Background(), 60*time.Minute)
 
 	notificationStreamConfig := jetstream.StreamConfig{
-		Name:     "NOTIFICATION_STREAM",
-		Subjects: []string{"notification.confirm_email", "notification.send_certificate"},
+		Name:      "NOTIFICATION_STREAM",
+		Subjects:  []string{"notification.confirm_email", "notification.send_certificate"},
+		Retention: jetstream.WorkQueuePolicy,
 	}
 
 	if w.Replicas > 1 {

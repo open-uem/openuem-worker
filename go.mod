@@ -9,7 +9,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/nats-io/nats.go v1.41.2
 	github.com/open-uem/ent v0.0.0-20250424154135-51cb9044486a
-	github.com/open-uem/nats v0.0.0-20250424154048-a772eef61381
+	github.com/open-uem/nats v0.0.0-20250425103553-e4fce8b99c4a
 	github.com/open-uem/utils v0.0.0-20250424154005-aa7e1df31e6c
 	github.com/open-uem/wingetcfg v0.0.0-20250317160420-5c7e4c410be1
 	github.com/urfave/cli/v2 v2.27.6
@@ -26,7 +26,7 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/danieljoos/wincred v1.2.2 // indirect
 	github.com/go-openapi/inflect v0.21.2 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
