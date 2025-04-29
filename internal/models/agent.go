@@ -324,6 +324,7 @@ func (m *Model) SavePrintersInfo(data *nats.AgentReport) error {
 			SetPort(printerData.Port).
 			SetIsDefault(printerData.IsDefault).
 			SetIsNetwork(printerData.IsNetwork).
+			SetIsShared(printerData.IsShared).
 			SetOwnerID(data.AgentID).
 			Exec(ctx); err != nil {
 			return tx.Rollback()
