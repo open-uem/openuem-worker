@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -36,7 +37,7 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string, autoAdmitA
 	ctx := context.Background()
 
 	exists := true
-	existingAgent, err := m.Client.Agent.Query().Where(agent.ID(data.AgentID)).First(ctx)
+	existingAgent, err := m.Client.Agent.Query().WithSite().Where(agent.ID(data.AgentID)).First(ctx)
 	if err != nil {
 		if !ent.IsNotFound(err) {
 			return err
@@ -100,6 +101,61 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string, autoAdmitA
 	}
 
 	if exists {
+		// Check if we must add the site
+		associatedSites := existingAgent.Edges.Site
+		if len(associatedSites) > 0 {
+			log.Println("[ERROR]: agent cannot be associated to two or more sites")
+			return fmt.Errorf("agent cannot be associated to two or more sites")
+		}
+
+		if len(associatedSites) == 0 {
+			if data.Site == "" {
+				s, err := m.GetDefaultSite()
+				if err != nil {
+					log.Printf("[ERROR]: could not get default site, reason: %v", err)
+					return err
+				}
+				query.AddSite(s)
+			} else {
+				siteID, err := strconv.Atoi(data.Site)
+				if err != nil {
+					log.Printf("[ERROR]: could not convert site ID to int, reason: %v", err)
+					return err
+				}
+				query.AddSiteIDs(siteID)
+			}
+		}
+
+		if len(associatedSites) == 1 {
+			if data.Site == "" {
+				s, err := m.GetDefaultSite()
+				if err != nil {
+					log.Printf("[ERROR]: could not get default site, reason: %v", err)
+					return err
+				}
+				if s.ID != associatedSites[0].ID {
+					if err := m.Client.Site.Update().Where(site.ID(associatedSites[0].ID)).RemoveAgentIDs(data.AgentID).Exec(context.Background()); err != nil {
+						log.Printf("[ERROR]: could not remove agent from site %d, reason: %v", associatedSites[0].ID, err)
+					} else {
+						query.AddSiteIDs(s.ID)
+					}
+				}
+			} else {
+				siteID, err := strconv.Atoi(data.Site)
+				if err != nil {
+					log.Printf("[ERROR]: could not convert site ID to int, reason: %v", err)
+					return err
+				}
+				if siteID != associatedSites[0].ID {
+					if err := m.Client.Site.Update().Where(site.ID(associatedSites[0].ID)).RemoveAgentIDs(data.AgentID).Exec(context.Background()); err != nil {
+						log.Printf("[ERROR]: could not remove agent from site %d, reason: %v", associatedSites[0].ID, err)
+					} else {
+						query.AddSiteIDs(siteID)
+					}
+				}
+			}
+		}
+
 		return query.
 			SetLastContact(time.Now()).
 			OnConflictColumns(agent.FieldID).
@@ -109,6 +165,23 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string, autoAdmitA
 		// This is a new agent, we must create a record and set enabled if auto admit agents is enabled
 		if autoAdmitAgents {
 			query.SetAgentStatus(agent.AgentStatusEnabled)
+		}
+
+		// Set the associated site
+		if data.Site == "" {
+			s, err := m.GetDefaultSite()
+			if err != nil {
+				log.Printf("[ERROR]: could not get default site, reason: %v", err)
+				return err
+			}
+			query.AddSite(s)
+		} else {
+			siteID, err := strconv.Atoi(data.Site)
+			if err != nil {
+				log.Printf("[ERROR]: could not convert site ID to int, reason: %v", err)
+				return err
+			}
+			query.AddSiteIDs(siteID)
 		}
 
 		return query.
@@ -651,4 +724,17 @@ func (m *Model) GetTenantFromAgentID(agentID string) (int, error) {
 	}
 
 	return t.ID, nil
+}
+
+func (m *Model) GetDefaultTenant() (*ent.Tenant, error) {
+	return m.Client.Tenant.Query().Where(tenant.IsDefault(true)).Only(context.Background())
+}
+
+func (m *Model) GetDefaultSite() (*ent.Site, error) {
+	t, err := m.GetDefaultTenant()
+	if err != nil {
+		return nil, err
+	}
+
+	return m.Client.Site.Query().Where(site.IsDefault(true), site.HasTenantWith(tenant.ID(t.ID))).Only(context.Background())
 }
