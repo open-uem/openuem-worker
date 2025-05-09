@@ -103,7 +103,7 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string, autoAdmitA
 	if exists {
 		// Check if we must add the site
 		associatedSites := existingAgent.Edges.Site
-		if len(associatedSites) > 0 {
+		if len(associatedSites) > 1 {
 			log.Println("[ERROR]: agent cannot be associated to two or more sites")
 			return fmt.Errorf("agent cannot be associated to two or more sites")
 		}
