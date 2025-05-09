@@ -103,7 +103,7 @@ func (w *Worker) AgentConfigHandler(msg *nats.Msg) {
 
 	agentID := string(msg.Data)
 
-	frequency, err := w.Model.GetDefaultAgentFrequency()
+	frequency, err := w.Model.GetDefaultAgentFrequency(agentID)
 	if err != nil {
 		log.Printf("[ERROR]: could not get default frequency, reason: %v", err)
 		config.Ok = false
@@ -112,7 +112,7 @@ func (w *Worker) AgentConfigHandler(msg *nats.Msg) {
 		config.Ok = true
 	}
 
-	wingetFrequency, err := w.Model.GetWingetFrequency()
+	wingetFrequency, err := w.Model.GetWingetFrequency(agentID)
 	if err != nil {
 		log.Printf("[ERROR]: could not get winget frequency, reason: %v", err)
 		config.Ok = false
