@@ -97,7 +97,7 @@ func (w *Worker) SendUserCertificateHandler(msg *nats.Msg) {
 func (w *Worker) ReloadSettingsHandler(msg *nats.Msg) {
 	var err error
 	// read again SMTP settings from database
-	w.Settings, err = w.Model.GetSettings()
+	w.Settings, err = w.Model.GetSMTPSettings()
 	if err != nil {
 		if ent.IsNotFound(err) {
 			log.Println("[INFO]: no SMTP settings found")
