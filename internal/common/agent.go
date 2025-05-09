@@ -91,7 +91,7 @@ func (w *Worker) ReportReceivedHandler(msg *nats.Msg) {
 	}
 
 	autoAdmitAgents := false
-	settings, err := w.Model.GetSettings()
+	settings, err := w.Model.GetSettings(data.Tenant)
 	if err != nil {
 		log.Printf("[ERROR]: could not get OpenUEM general settings, reason: %v\n", err)
 	} else {

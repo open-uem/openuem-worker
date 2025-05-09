@@ -24,7 +24,9 @@ import (
 	"github.com/open-uem/ent/release"
 	"github.com/open-uem/ent/settings"
 	"github.com/open-uem/ent/share"
+	"github.com/open-uem/ent/site"
 	"github.com/open-uem/ent/systemupdate"
+	"github.com/open-uem/ent/tenant"
 	"github.com/open-uem/ent/update"
 	"github.com/open-uem/nats"
 	"github.com/open-uem/utils"
@@ -429,10 +431,19 @@ func (m *Model) SaveUpdatesInfo(data *nats.AgentReport) error {
 	return tx.Commit()
 }
 
-func (m *Model) GetDefaultAgentFrequency() (int, error) {
+func (m *Model) GetDefaultAgentFrequency(agentID string) (int, error) {
 	var err error
 
-	settings, err := m.Client.Settings.Query().Select(settings.FieldAgentReportFrequenceInMinutes).Only(context.Background())
+	tenantID, err := m.GetTenantFromAgentID(agentID)
+	if err != nil {
+		settings, err := m.Client.Settings.Query().Where(settings.Not(settings.HasTenant())).Select(settings.FieldAgentReportFrequenceInMinutes).Only(context.Background())
+		if err != nil {
+			return 0, err
+		}
+		return settings.AgentReportFrequenceInMinutes, nil
+	}
+
+	settings, err := m.Client.Settings.Query().Where(settings.HasTenantWith(tenant.ID(tenantID))).Select(settings.FieldAgentReportFrequenceInMinutes).Only(context.Background())
 	if err != nil {
 		return 0, err
 	}
@@ -440,26 +451,25 @@ func (m *Model) GetDefaultAgentFrequency() (int, error) {
 	return settings.AgentReportFrequenceInMinutes, nil
 }
 
-func (m *Model) GetWingetFrequency() (int, error) {
+func (m *Model) GetWingetFrequency(agentID string) (int, error) {
 	var err error
 
-	settings, err := m.Client.Settings.Query().Select(settings.FieldProfilesApplicationFrequenceInMinutes).Only(context.Background())
+	tenantID, err := m.GetTenantFromAgentID(agentID)
+	if err != nil {
+		settings, err := m.Client.Settings.Query().Where(settings.Not(settings.HasTenant())).Select(settings.FieldProfilesApplicationFrequenceInMinutes).Only(context.Background())
+		if err != nil {
+			return 0, err
+		}
+
+		return settings.ProfilesApplicationFrequenceInMinutes, nil
+	}
+
+	settings, err := m.Client.Settings.Query().Where(settings.HasTenantWith(tenant.ID(tenantID))).Select(settings.FieldProfilesApplicationFrequenceInMinutes).Only(context.Background())
 	if err != nil {
 		return 0, err
 	}
 
 	return settings.ProfilesApplicationFrequenceInMinutes, nil
-}
-
-func (m *Model) GetSFTPDisabledSettings() (bool, error) {
-	var err error
-
-	settings, err := m.Client.Settings.Query().Select(settings.FieldDisableSftp).Only(context.Background())
-	if err != nil {
-		return false, err
-	}
-
-	return settings.DisableSftp, nil
 }
 
 func (m *Model) GetSFTPAgentSetting(agentID string) (bool, error) {
@@ -473,17 +483,6 @@ func (m *Model) GetSFTPAgentSetting(agentID string) (bool, error) {
 
 func (m *Model) SaveSFTPAgentSetting(agentID string, status bool) error {
 	return m.Client.Agent.UpdateOneID(agentID).SetSftpService(status).Exec(context.Background())
-}
-
-func (m *Model) GetRemoteAssistanceDisabledSettings() (bool, error) {
-	var err error
-
-	settings, err := m.Client.Settings.Query().Select(settings.FieldDisableRemoteAssistance).Only(context.Background())
-	if err != nil {
-		return false, err
-	}
-
-	return settings.DisableRemoteAssistance, nil
 }
 
 func (m *Model) GetRemoteAssistanceAgentSetting(agentID string) (bool, error) {
@@ -628,4 +627,28 @@ func checkIfRemote(data *nats.AgentReport, servers string) bool {
 
 	// If the agent's IP address is not contained in the addresses list resolved by DNS, the agent is in a remote location
 	return !slices.Contains(addresses, data.IP)
+}
+
+func (m *Model) GetTenantFromAgentID(agentID string) (int, error) {
+	a, err := m.Client.Agent.Query().WithSite().Where(agent.ID(agentID)).Only(context.Background())
+	if err != nil {
+		return 0, err
+	}
+
+	sites := a.Edges.Site
+	if len(sites) != 1 {
+		return 0, fmt.Errorf("the agent should belong to only one site")
+	}
+
+	s, err := m.Client.Site.Query().WithTenant().Where(site.ID(sites[0].ID)).Only(context.Background())
+	if err != nil {
+		return 0, err
+	}
+
+	t := s.Edges.Tenant
+	if t == nil {
+		return 0, fmt.Errorf("could not find tenant associated with agent's site")
+	}
+
+	return t.ID, nil
 }
