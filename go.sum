@@ -66,6 +66,8 @@ github.com/open-uem/ent v0.0.0-20250424154135-51cb9044486a h1:9tk/+7lMIjET9B72/X
 github.com/open-uem/ent v0.0.0-20250424154135-51cb9044486a/go.mod h1:TkCPQ+cFFwCdDflqc2/XKTZIN/ZJGJenbvUSIZOEzsk=
 github.com/open-uem/ent v0.0.0-20250429092009-2136a05d7b1d h1:VnHlEF6+kkUOFizj+8okMECPELunxPXhVGF4W1HhgAs=
 github.com/open-uem/ent v0.0.0-20250429092009-2136a05d7b1d/go.mod h1:TkCPQ+cFFwCdDflqc2/XKTZIN/ZJGJenbvUSIZOEzsk=
+github.com/open-uem/ent v0.0.0-20250508163731-f0d1ab086ec0 h1:yTWQF5HV2U5PtGssXrWR+q73iuG8aZiSFjP3So519kk=
+github.com/open-uem/ent v0.0.0-20250508163731-f0d1ab086ec0/go.mod h1:TkCPQ+cFFwCdDflqc2/XKTZIN/ZJGJenbvUSIZOEzsk=
 github.com/open-uem/nats v0.0.0-20250425081543-2181d0b000aa h1:aqbwaSWcYhetVe/hWiaYkbUM9tl1M2bbxjQdQmKNAOU=
 github.com/open-uem/nats v0.0.0-20250425081543-2181d0b000aa/go.mod h1:TggltbqnbqawnytotV1cqURm/JTCxLPE8+wr6Ai3fuQ=
 github.com/open-uem/nats v0.0.0-20250425103553-e4fce8b99c4a h1:vEL5URLLe9EQGvdE/AQtlM4jzhBAPFpoLvJDOcxt5Rg=
