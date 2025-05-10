@@ -12,49 +12,78 @@ import (
 )
 
 func (m *Model) SaveDeployInfo(data *nats.DeployAction) error {
+	exists, err := m.Client.Deployment.Query().Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).Exist(context.Background())
+	if err != nil {
+		return err
+	}
 
 	if data.Action == "install" {
-		return m.Client.Deployment.Update().
-			SetInstalled(data.When).
-			SetUpdated(data.When).
-			SetFailed(data.Failed).
-			Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).
-			Exec(context.Background())
+		if exists {
+			return m.Client.Deployment.Update().
+				SetInstalled(data.When).
+				SetUpdated(data.When).
+				SetFailed(data.Failed).
+				Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).
+				Exec(context.Background())
+		} else {
+			return m.Client.Deployment.Create().
+				SetName(data.PackageName).
+				SetOwnerID(data.AgentId).
+				SetPackageID(data.PackageId).
+				SetInstalled(data.When).
+				SetUpdated(data.When).
+				SetFailed(data.Failed).
+				Exec(context.Background())
+		}
+
 	}
 
 	if data.Action == "update" {
-		return m.Client.Deployment.Update().
-			SetUpdated(data.When).
-			SetFailed(data.Failed).
-			Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).
-			Exec(context.Background())
-	}
-
-	if data.Action == "uninstall" {
-
-		d, err := m.Client.Deployment.Query().Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).Only(context.Background())
-		if err != nil {
-			return err
-		}
-
-		// TODO: if package remove failed don't delete deployment, save error
-		if data.Failed {
+		if exists {
 			return m.Client.Deployment.Update().
 				SetUpdated(data.When).
 				SetFailed(data.Failed).
 				Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).
 				Exec(context.Background())
 		} else {
-			_, err = m.Client.Deployment.Delete().
+			return m.Client.Deployment.Update().
+				SetName(data.PackageName).
+				SetOwnerID(data.AgentId).
+				SetPackageID(data.PackageId).
+				SetInstalled(data.When).
+				SetUpdated(data.When).
+				SetFailed(data.Failed).
 				Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).
 				Exec(context.Background())
+		}
+	}
+
+	if data.Action == "uninstall" {
+		if exists {
+			d, err := m.Client.Deployment.Query().Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).Only(context.Background())
 			if err != nil {
 				return err
 			}
 
-			// If package was installed due to a profile, add a new exclusion as we've removed it using OpenUEM Console
-			if d.ByProfile {
-				return m.Client.WingetConfigExclusion.Create().SetPackageID(data.PackageId).SetOwnerID(data.AgentId).Exec(context.Background())
+			// TODO: if package remove failed don't delete deployment, save error
+			if data.Failed {
+				return m.Client.Deployment.Update().
+					SetUpdated(data.When).
+					SetFailed(data.Failed).
+					Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).
+					Exec(context.Background())
+			} else {
+				_, err = m.Client.Deployment.Delete().
+					Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).
+					Exec(context.Background())
+				if err != nil {
+					return err
+				}
+
+				// If package was installed due to a profile, add a new exclusion as we've removed it using OpenUEM Console
+				if d.ByProfile {
+					return m.Client.WingetConfigExclusion.Create().SetPackageID(data.PackageId).SetOwnerID(data.AgentId).Exec(context.Background())
+				}
 			}
 		}
 	}
