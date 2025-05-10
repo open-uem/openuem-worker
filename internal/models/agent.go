@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -117,12 +118,31 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string, autoAdmitA
 				}
 				query.AddSite(s)
 			} else {
+				tenantID, err := strconv.Atoi(data.Tenant)
+				if err != nil {
+					log.Printf("[ERROR]: could not convert tenant ID to int, reason: %v", err)
+					return err
+				}
+
 				siteID, err := strconv.Atoi(data.Site)
 				if err != nil {
 					log.Printf("[ERROR]: could not convert site ID to int, reason: %v", err)
 					return err
 				}
-				query.AddSiteIDs(siteID)
+
+				// Check if tenantID is right and associated with the site
+				valid, err := m.ValidateTenantAndSite(tenantID, siteID)
+				if err != nil {
+					log.Printf("[ERROR]: could not check if tenant and site are valid, reason: %v", err)
+					return err
+				}
+
+				if valid {
+					query.AddSiteIDs(siteID)
+				} else {
+					log.Printf("[ERROR]: tenant and site are not valid")
+					return errors.New("tenant and site are not valid")
+				}
 			}
 		}
 
@@ -151,7 +171,26 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string, autoAdmitA
 				log.Printf("[ERROR]: could not convert site ID to int, reason: %v", err)
 				return err
 			}
-			query.AddSiteIDs(siteID)
+
+			tenantID, err := strconv.Atoi(data.Tenant)
+			if err != nil {
+				log.Printf("[ERROR]: could not convert tenant ID to int, reason: %v", err)
+				return err
+			}
+
+			// Check if tenantID is right and associated with the site
+			valid, err := m.ValidateTenantAndSite(tenantID, siteID)
+			if err != nil {
+				log.Printf("[ERROR]: could not check if tenant and site are valid, reason: %v", err)
+				return err
+			}
+
+			if valid {
+				query.AddSiteIDs(siteID)
+			} else {
+				log.Printf("[ERROR]: tenant and site are not valid")
+				return errors.New("tenant and site are not valid")
+			}
 		}
 
 		return query.
@@ -707,4 +746,8 @@ func (m *Model) GetDefaultSite() (*ent.Site, error) {
 	}
 
 	return m.Client.Site.Query().Where(site.IsDefault(true), site.HasTenantWith(tenant.ID(t.ID))).Only(context.Background())
+}
+
+func (m *Model) ValidateTenantAndSite(tenantID, siteID int) (bool, error) {
+	return m.Client.Site.Query().Where(site.ID(siteID), site.HasTenantWith(tenant.ID(tenantID))).Exist(context.Background())
 }
