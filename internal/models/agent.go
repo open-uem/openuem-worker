@@ -101,7 +101,7 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string, autoAdmitA
 	}
 
 	if exists {
-		// Check if we must add the site
+		// Check if we must add the site, only if no site has been assigned yet
 		associatedSites := existingAgent.Edges.Site
 		if len(associatedSites) > 1 {
 			log.Println("[ERROR]: agent cannot be associated to two or more sites")
@@ -123,36 +123,6 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string, autoAdmitA
 					return err
 				}
 				query.AddSiteIDs(siteID)
-			}
-		}
-
-		if len(associatedSites) == 1 {
-			if data.Site == "" {
-				s, err := m.GetDefaultSite()
-				if err != nil {
-					log.Printf("[ERROR]: could not get default site, reason: %v", err)
-					return err
-				}
-				if s.ID != associatedSites[0].ID {
-					if err := m.Client.Site.Update().Where(site.ID(associatedSites[0].ID)).RemoveAgentIDs(data.AgentID).Exec(context.Background()); err != nil {
-						log.Printf("[ERROR]: could not remove agent from site %d, reason: %v", associatedSites[0].ID, err)
-					} else {
-						query.AddSiteIDs(s.ID)
-					}
-				}
-			} else {
-				siteID, err := strconv.Atoi(data.Site)
-				if err != nil {
-					log.Printf("[ERROR]: could not convert site ID to int, reason: %v", err)
-					return err
-				}
-				if siteID != associatedSites[0].ID {
-					if err := m.Client.Site.Update().Where(site.ID(associatedSites[0].ID)).RemoveAgentIDs(data.AgentID).Exec(context.Background()); err != nil {
-						log.Printf("[ERROR]: could not remove agent from site %d, reason: %v", associatedSites[0].ID, err)
-					} else {
-						query.AddSiteIDs(siteID)
-					}
-				}
 			}
 		}
 
