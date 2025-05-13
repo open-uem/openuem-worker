@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/nats-io/nats.go"
@@ -87,17 +88,42 @@ func (w *Worker) SubscribeToAgentWorkerQueues() error {
 
 func (w *Worker) ReportReceivedHandler(msg *nats.Msg) {
 	data := openuem_nats.AgentReport{}
+	tenantID := ""
 
 	if err := json.Unmarshal(msg.Data, &data); err != nil {
 		log.Printf("[ERROR]: could not unmarshal agent report, reason: %v\n", err)
 	}
 
+	requestConfig := openuem_nats.RemoteConfigRequest{
+		AgentID:  data.AgentID,
+		TenantID: data.Tenant,
+		SiteID:   data.Site,
+	}
+
 	autoAdmitAgents := false
-	settings, err := w.Model.GetSettings(data.Tenant)
+
+	// Check if agent exists
+	exists, err := w.Model.Client.Agent.Query().Where(agent.ID(data.AgentID)).Exist(context.Background())
 	if err != nil {
-		log.Printf("[ERROR]: could not get OpenUEM general settings, reason: %v\n", err)
+		log.Printf("[ERROR]: could not check if agent exists, reason: %v\n", err)
 	} else {
-		autoAdmitAgents = settings.AutoAdmitAgents
+		if exists {
+			id, err := w.Model.GetTenantFromAgentID(requestConfig)
+			if err != nil {
+				log.Printf("[ERROR]: could not get tenant ID, reason: %v\n", err)
+			} else {
+				tenantID = strconv.Itoa(id)
+			}
+		} else {
+			tenantID = data.Tenant
+		}
+
+		settings, err := w.Model.GetSettings(tenantID)
+		if err != nil {
+			log.Printf("[ERROR]: could not get OpenUEM general settings, reason: %v\n", err)
+		} else {
+			autoAdmitAgents = settings.AutoAdmitAgents
+		}
 	}
 
 	if err := w.Model.SaveAgentInfo(&data, w.NATSServers, autoAdmitAgents); err != nil {

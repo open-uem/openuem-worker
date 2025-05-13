@@ -101,9 +101,13 @@ func (w *Worker) PingHandler(msg *nats.Msg) {
 func (w *Worker) AgentConfigHandler(msg *nats.Msg) {
 	config := openuem_nats.Config{}
 
-	agentID := string(msg.Data)
+	remoteConfigRequest := openuem_nats.RemoteConfigRequest{}
+	err := json.Unmarshal(msg.Data, &remoteConfigRequest)
+	if err != nil {
+		remoteConfigRequest.AgentID = string(msg.Data)
+	}
 
-	frequency, err := w.Model.GetDefaultAgentFrequency(agentID)
+	frequency, err := w.Model.GetDefaultAgentFrequency(remoteConfigRequest)
 	if err != nil {
 		log.Printf("[ERROR]: could not get default frequency, reason: %v", err)
 		config.Ok = false
@@ -112,7 +116,7 @@ func (w *Worker) AgentConfigHandler(msg *nats.Msg) {
 		config.Ok = true
 	}
 
-	wingetFrequency, err := w.Model.GetWingetFrequency(agentID)
+	wingetFrequency, err := w.Model.GetWingetFrequency(remoteConfigRequest)
 	if err != nil {
 		log.Printf("[ERROR]: could not get winget frequency, reason: %v", err)
 		config.Ok = false
@@ -121,26 +125,26 @@ func (w *Worker) AgentConfigHandler(msg *nats.Msg) {
 		config.Ok = true
 	}
 
-	sftpStatus, err := w.Model.GetSFTPAgentSetting(agentID)
+	sftpStatus, err := w.Model.GetSFTPAgentSetting(remoteConfigRequest)
 	if err != nil {
 		log.Printf("[ERROR]: could not get SFTP service for agent, reason: %v", err)
 		config.Ok = false
 	} else {
 		config.SFTPDisabled = !sftpStatus
 		config.Ok = true
-		if err := w.Model.SaveSFTPAgentSetting(agentID, sftpStatus); err != nil {
+		if err := w.Model.SaveSFTPAgentSetting(remoteConfigRequest, sftpStatus); err != nil {
 			log.Printf("[ERROR]: could not save Agent SFTP status, reason: %v", err)
 		}
 	}
 
-	remoteAssistance, err := w.Model.GetRemoteAssistanceAgentSetting(agentID)
+	remoteAssistance, err := w.Model.GetRemoteAssistanceAgentSetting(remoteConfigRequest)
 	if err != nil {
 		log.Printf("[ERROR]: could not get Remote Assistance for agent, reason: %v", err)
 		config.Ok = false
 	} else {
 		config.RemoteAssistanceDisabled = !remoteAssistance
 		config.Ok = true
-		if err := w.Model.SaveRemoteAssistanceAgentSetting(agentID, remoteAssistance); err != nil {
+		if err := w.Model.SaveRemoteAssistanceAgentSetting(remoteConfigRequest, remoteAssistance); err != nil {
 			log.Printf("[ERROR]: could not save Agent Remote Assistance status, reason: %v", err)
 		}
 	}

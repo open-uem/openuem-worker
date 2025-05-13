@@ -8,8 +8,8 @@ require (
 	github.com/go-co-op/gocron/v2 v2.16.1
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/nats-io/nats.go v1.41.2
-	github.com/open-uem/ent v0.0.0-20250509083735-df449b5cfb81
-	github.com/open-uem/nats v0.0.0-20250506153024-3417927f377b
+	github.com/open-uem/ent v0.0.0-20250513061100-3deef4bb3081
+	github.com/open-uem/nats v0.0.0-20250513111754-eccc8eb60a46
 	github.com/open-uem/utils v0.0.0-20250424154005-aa7e1df31e6c
 	github.com/open-uem/wingetcfg v0.0.0-20250317160420-5c7e4c410be1
 	github.com/urfave/cli/v2 v2.27.6

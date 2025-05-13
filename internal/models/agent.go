@@ -513,10 +513,10 @@ func (m *Model) SaveUpdatesInfo(data *nats.AgentReport) error {
 	return tx.Commit()
 }
 
-func (m *Model) GetDefaultAgentFrequency(agentID string) (int, error) {
+func (m *Model) GetDefaultAgentFrequency(request nats.RemoteConfigRequest) (int, error) {
 	var err error
 
-	tenantID, err := m.GetTenantFromAgentID(agentID)
+	tenantID, err := m.GetTenantFromAgentID(request)
 	if err != nil {
 		settings, err := m.Client.Settings.Query().Where(settings.Not(settings.HasTenant())).Select(settings.FieldAgentReportFrequenceInMinutes).Only(context.Background())
 		if err != nil {
@@ -533,10 +533,10 @@ func (m *Model) GetDefaultAgentFrequency(agentID string) (int, error) {
 	return settings.AgentReportFrequenceInMinutes, nil
 }
 
-func (m *Model) GetWingetFrequency(agentID string) (int, error) {
+func (m *Model) GetWingetFrequency(request nats.RemoteConfigRequest) (int, error) {
 	var err error
 
-	tenantID, err := m.GetTenantFromAgentID(agentID)
+	tenantID, err := m.GetTenantFromAgentID(request)
 	if err != nil {
 		settings, err := m.Client.Settings.Query().Where(settings.Not(settings.HasTenant())).Select(settings.FieldProfilesApplicationFrequenceInMinutes).Only(context.Background())
 		if err != nil {
@@ -554,30 +554,58 @@ func (m *Model) GetWingetFrequency(agentID string) (int, error) {
 	return settings.ProfilesApplicationFrequenceInMinutes, nil
 }
 
-func (m *Model) GetSFTPAgentSetting(agentID string) (bool, error) {
-	agent, err := m.Client.Agent.Query().Select(agent.FieldSftpService).Where(agent.ID(agentID)).First(context.Background())
+func (m *Model) GetSFTPAgentSetting(request nats.RemoteConfigRequest) (bool, error) {
+	agent, err := m.Client.Agent.Query().Select(agent.FieldSftpService).Where(agent.ID(request.AgentID)).First(context.Background())
 	if err != nil {
-		return false, err
+		tenantID, err := m.GetTenantFromAgentID(request)
+		if err != nil {
+			settings, err := m.Client.Settings.Query().Where(settings.Not(settings.HasTenant())).Select(settings.FieldProfilesApplicationFrequenceInMinutes).Only(context.Background())
+			if err != nil {
+				return false, err
+			}
+
+			return !settings.DisableSftp, nil
+		}
+
+		settings, err := m.Client.Settings.Query().Where(settings.HasTenantWith(tenant.ID(tenantID))).Select(settings.FieldProfilesApplicationFrequenceInMinutes).Only(context.Background())
+		if err != nil {
+			return false, err
+		}
+		return !settings.DisableSftp, nil
 	}
 
 	return agent.SftpService, nil
 }
 
-func (m *Model) SaveSFTPAgentSetting(agentID string, status bool) error {
-	return m.Client.Agent.UpdateOneID(agentID).SetSftpService(status).Exec(context.Background())
+func (m *Model) SaveSFTPAgentSetting(request nats.RemoteConfigRequest, status bool) error {
+	return m.Client.Agent.UpdateOneID(request.AgentID).SetSftpService(status).Exec(context.Background())
 }
 
-func (m *Model) GetRemoteAssistanceAgentSetting(agentID string) (bool, error) {
-	agent, err := m.Client.Agent.Query().Select(agent.FieldRemoteAssistance).Where(agent.ID(agentID)).First(context.Background())
+func (m *Model) GetRemoteAssistanceAgentSetting(request nats.RemoteConfigRequest) (bool, error) {
+	agent, err := m.Client.Agent.Query().Select(agent.FieldRemoteAssistance).Where(agent.ID(request.AgentID)).First(context.Background())
 	if err != nil {
-		return false, err
+		tenantID, err := m.GetTenantFromAgentID(request)
+		if err != nil {
+			settings, err := m.Client.Settings.Query().Where(settings.Not(settings.HasTenant())).Select(settings.FieldProfilesApplicationFrequenceInMinutes).Only(context.Background())
+			if err != nil {
+				return false, err
+			}
+
+			return !settings.DisableRemoteAssistance, nil
+		}
+
+		settings, err := m.Client.Settings.Query().Where(settings.HasTenantWith(tenant.ID(tenantID))).Select(settings.FieldProfilesApplicationFrequenceInMinutes).Only(context.Background())
+		if err != nil {
+			return false, err
+		}
+		return !settings.DisableRemoteAssistance, nil
 	}
 
 	return agent.RemoteAssistance, nil
 }
 
-func (m *Model) SaveRemoteAssistanceAgentSetting(agentID string, status bool) error {
-	return m.Client.Agent.UpdateOneID(agentID).SetRemoteAssistance(status).Exec(context.Background())
+func (m *Model) SaveRemoteAssistanceAgentSetting(request nats.RemoteConfigRequest, status bool) error {
+	return m.Client.Agent.UpdateOneID(request.AgentID).SetRemoteAssistance(status).Exec(context.Background())
 }
 
 func (m *Model) SaveReleaseInfo(data *nats.AgentReport) error {
@@ -711,10 +739,14 @@ func checkIfRemote(data *nats.AgentReport, servers string) bool {
 	return !slices.Contains(addresses, data.IP)
 }
 
-func (m *Model) GetTenantFromAgentID(agentID string) (int, error) {
-	a, err := m.Client.Agent.Query().WithSite().Where(agent.ID(agentID)).Only(context.Background())
+func (m *Model) GetTenantFromAgentID(request nats.RemoteConfigRequest) (int, error) {
+
+	a, err := m.Client.Agent.Query().WithSite().Where(agent.ID(request.AgentID)).Only(context.Background())
 	if err != nil {
-		return 0, err
+		if request.TenantID != "" {
+			return 0, err
+		}
+		return strconv.Atoi(request.TenantID)
 	}
 
 	sites := a.Edges.Site
