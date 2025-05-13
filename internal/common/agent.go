@@ -2,6 +2,7 @@ package common
 
 import (
 	"cmp"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/open-uem/ent"
+	"github.com/open-uem/ent/agent"
 	"github.com/open-uem/ent/task"
 	openuem_nats "github.com/open-uem/nats"
 	"github.com/open-uem/wingetcfg/wingetcfg"
@@ -253,12 +255,23 @@ func (w *Worker) ApplyEndpointProfiles(msg *nats.Msg) {
 }
 
 func (w *Worker) GetAppliedProfiles(agentID string) ([]*ent.Profile, error) {
-	profilesAppliedToAll, err := w.Model.GetProfilesAppliedToAll()
+
+	a, err := w.Model.Client.Agent.Query().WithSite().Where(agent.ID(agentID)).Only(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	profilesAppliedToAgent, err := w.Model.GetProfilesAppliedToAgent(agentID)
+	sites := a.Edges.Site
+	if len(sites) != 1 {
+		return nil, fmt.Errorf("agent should be associated with only one site")
+	}
+
+	profilesAppliedToAll, err := w.Model.GetProfilesAppliedToAll(sites[0].ID)
+	if err != nil {
+		return nil, err
+	}
+
+	profilesAppliedToAgent, err := w.Model.GetProfilesAppliedToAgent(sites[0].ID, agentID)
 	if err != nil {
 		return nil, err
 	}

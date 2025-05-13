@@ -7,15 +7,16 @@ import (
 	"github.com/open-uem/ent/agent"
 	"github.com/open-uem/ent/profile"
 	"github.com/open-uem/ent/profileissue"
+	"github.com/open-uem/ent/site"
 	"github.com/open-uem/ent/tag"
 )
 
-func (m *Model) GetProfilesAppliedToAll() ([]*ent.Profile, error) {
-	return m.Client.Profile.Query().WithTasks().Where(profile.ApplyToAll(true)).All(context.Background())
+func (m *Model) GetProfilesAppliedToAll(siteID int) ([]*ent.Profile, error) {
+	return m.Client.Profile.Query().WithTasks().Where(profile.ApplyToAll(true), profile.HasSiteWith(site.ID(siteID))).All(context.Background())
 }
 
-func (m *Model) GetProfilesAppliedToAgent(agentID string) ([]*ent.Profile, error) {
-	agent, err := m.Client.Agent.Query().WithTags().Where(agent.ID(agentID)).Only(context.Background())
+func (m *Model) GetProfilesAppliedToAgent(siteID int, agentID string) ([]*ent.Profile, error) {
+	agent, err := m.Client.Agent.Query().WithTags().Where(agent.ID(agentID), agent.HasSiteWith(site.ID(siteID))).Only(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +28,7 @@ func (m *Model) GetProfilesAppliedToAgent(agentID string) ([]*ent.Profile, error
 			tags = append(tags, tag.ID)
 		}
 
-		return m.Client.Profile.Query().WithTasks().Where(profile.HasTagsWith(tag.IDIn(tags...))).All(context.Background())
+		return m.Client.Profile.Query().WithTasks().Where(profile.HasTagsWith(tag.IDIn(tags...)), profile.HasSiteWith(site.ID(siteID))).All(context.Background())
 	}
 
 	return []*ent.Profile{}, nil
