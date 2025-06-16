@@ -74,6 +74,9 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string, autoAdmitA
 			}
 		}
 
+		// Type and description info
+		query.SetEndpointType(existingAgent.EndpointType).SetDescription(existingAgent.Description)
+
 		// Check update task
 		query.SetUpdateTaskDescription(existingAgent.UpdateTaskDescription)
 		if data.LastUpdateTaskExecutionTime.After(existingAgent.UpdateTaskExecution) {
