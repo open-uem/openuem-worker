@@ -74,6 +74,10 @@ github.com/open-uem/ent v0.0.0-20250513061100-3deef4bb3081 h1:EQuQibKeVpfWKrjgqe
 github.com/open-uem/ent v0.0.0-20250513061100-3deef4bb3081/go.mod h1:TkCPQ+cFFwCdDflqc2/XKTZIN/ZJGJenbvUSIZOEzsk=
 github.com/open-uem/ent v0.0.0-20250607102336-cee6366c74d8 h1:AR0MGrTmcqcNlHbhZXFUS4SIVpVIZJT7rKVll+F9eeM=
 github.com/open-uem/ent v0.0.0-20250607102336-cee6366c74d8/go.mod h1:TkCPQ+cFFwCdDflqc2/XKTZIN/ZJGJenbvUSIZOEzsk=
+github.com/open-uem/ent v0.0.0-20250619154754-80adf9671637 h1:JowlU9mTejLdUwvu/adoZ0nbr1rm7pDJhbv8qiLUY34=
+github.com/open-uem/ent v0.0.0-20250619154754-80adf9671637/go.mod h1:TkCPQ+cFFwCdDflqc2/XKTZIN/ZJGJenbvUSIZOEzsk=
+github.com/open-uem/ent v0.0.0-20250620070137-84d271e3a2dc h1:26zYU1EH4PisUgejp+x9YKdrgvokU1CdpVYWR5BgSuI=
+github.com/open-uem/ent v0.0.0-20250620070137-84d271e3a2dc/go.mod h1:TkCPQ+cFFwCdDflqc2/XKTZIN/ZJGJenbvUSIZOEzsk=
 github.com/open-uem/nats v0.0.0-20250425081543-2181d0b000aa h1:aqbwaSWcYhetVe/hWiaYkbUM9tl1M2bbxjQdQmKNAOU=
 github.com/open-uem/nats v0.0.0-20250425081543-2181d0b000aa/go.mod h1:TggltbqnbqawnytotV1cqURm/JTCxLPE8+wr6Ai3fuQ=
 github.com/open-uem/nats v0.0.0-20250425103553-e4fce8b99c4a h1:vEL5URLLe9EQGvdE/AQtlM4jzhBAPFpoLvJDOcxt5Rg=
@@ -92,6 +96,14 @@ github.com/open-uem/utils v0.0.0-20250611060546-cab35b3801b9 h1:u54f6Oq97w7FDHl9
 github.com/open-uem/utils v0.0.0-20250611060546-cab35b3801b9/go.mod h1:nPL4xlsiCPyUiF8ntnyrlyz+pVjizIC+N5+TOvj3TLc=
 github.com/open-uem/wingetcfg v0.0.0-20250317160420-5c7e4c410be1 h1:OwLny9z8SqKVqPMVoJCMftGPB9A7T96W/5o70Yhanus=
 github.com/open-uem/wingetcfg v0.0.0-20250317160420-5c7e4c410be1/go.mod h1:dXSggJ7Na4J4WTII2YmxKmlpwlHzMjuHUrBJkn1/DrU=
+github.com/open-uem/wingetcfg v0.0.0-20250619125258-50a55b4c2bc5 h1:m+HPkKJRtyGypLsU+3GfMyb1YgwRqhcVuTCLzXDLmik=
+github.com/open-uem/wingetcfg v0.0.0-20250619125258-50a55b4c2bc5/go.mod h1:dXSggJ7Na4J4WTII2YmxKmlpwlHzMjuHUrBJkn1/DrU=
+github.com/open-uem/wingetcfg v0.0.0-20250620070852-f02fb15a78d0 h1:w+09+runC3CF9YziW+R1oOjFmFxBnFTMUAucFnzmhB4=
+github.com/open-uem/wingetcfg v0.0.0-20250620070852-f02fb15a78d0/go.mod h1:b2rmcb7kD/AODHdvHGZ8TpzhX4qrkdDPrEGM5FmOBxQ=
+github.com/open-uem/wingetcfg v0.0.0-20250620082222-b8daa913f671 h1:u87Q7dJmM058x46U1YHR2xfgktzULFurUuClw1NOWqg=
+github.com/open-uem/wingetcfg v0.0.0-20250620082222-b8daa913f671/go.mod h1:b2rmcb7kD/AODHdvHGZ8TpzhX4qrkdDPrEGM5FmOBxQ=
+github.com/open-uem/wingetcfg v0.0.0-20250620110950-ea014159267c h1:hXEoSuJTBkn5mgFijyvFKJC4XKiikBPr6tt9TSuYKzA=
+github.com/open-uem/wingetcfg v0.0.0-20250620110950-ea014159267c/go.mod h1:b2rmcb7kD/AODHdvHGZ8TpzhX4qrkdDPrEGM5FmOBxQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/robfig/cron/v3 v3.0.1 h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=
