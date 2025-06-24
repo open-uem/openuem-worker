@@ -398,6 +398,18 @@ func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCf
 				return nil, err
 			}
 			cfg.AddResource(localGroup)
+		case task.TypeMsiInstall:
+			msiInstall, err := wingetcfg.InstallMSIPackage(fmt.Sprintf("task_%d", i), fmt.Sprintf("Install %s", t.MsiProductid), t.MsiProductid, t.MsiPath, t.MsiArguments, t.MsiLogPath, t.MsiFileHash, string(t.MsiFileHashAlg))
+			if err != nil {
+				return nil, err
+			}
+			cfg.AddResource(msiInstall)
+		case task.TypeMsiUninstall:
+			msiUninstall, err := wingetcfg.UninstallMSIPackage(fmt.Sprintf("task_%d", i), fmt.Sprintf("Uninstall %s", t.MsiProductid), t.MsiProductid, t.MsiPath, t.MsiArguments, t.MsiLogPath, t.MsiFileHash, string(t.MsiFileHashAlg))
+			if err != nil {
+				return nil, err
+			}
+			cfg.AddResource(msiUninstall)
 		default:
 			return nil, errors.New("task type is not valid")
 		}
