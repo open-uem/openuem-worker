@@ -410,6 +410,12 @@ func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCf
 				return nil, err
 			}
 			cfg.AddResource(msiUninstall)
+		case task.TypePowershellScript:
+			msiUninstall, err := wingetcfg.ExecutePowershellScript(strconv.Itoa(t.ID), t.Name, t.Script, t.ScriptRun.String())
+			if err != nil {
+				return nil, err
+			}
+			cfg.AddResource(msiUninstall)
 		default:
 			return nil, errors.New("task type is not valid")
 		}
