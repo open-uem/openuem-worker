@@ -8,10 +8,10 @@ require (
 	github.com/go-co-op/gocron/v2 v2.16.1
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/nats-io/nats.go v1.41.2
-	github.com/open-uem/ent v0.0.0-20250620070137-84d271e3a2dc
+	github.com/open-uem/ent v0.0.0-20250625094613-97d5d94604aa
 	github.com/open-uem/nats v0.0.0-20250514125548-3bae96c53080
 	github.com/open-uem/utils v0.0.0-20250611060546-cab35b3801b9
-	github.com/open-uem/wingetcfg v0.0.0-20250620110950-ea014159267c
+	github.com/open-uem/wingetcfg v0.0.0-20250625110454-5d9433af7cf3
 	github.com/urfave/cli/v2 v2.27.6
 	github.com/wneessen/go-mail v0.6.2
 	golang.org/x/crypto v0.37.0
