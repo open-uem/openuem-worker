@@ -17,14 +17,17 @@ import (
 	"github.com/open-uem/ent/task"
 	openuem_nats "github.com/open-uem/nats"
 	"github.com/open-uem/wingetcfg/wingetcfg"
+
+	ansiblecfg "github.com/open-uem/openuem-ansible-config/ansible"
 	"gopkg.in/yaml.v3"
 )
 
 type ProfileConfig struct {
-	ProfileID   int                  `yaml:"profileID"`
-	Exclusions  []string             `yaml:"exclusions"`
-	Deployments []string             `yaml:"deployments"`
-	Config      *wingetcfg.WinGetCfg `yaml:"config"`
+	ProfileID     int                           `yaml:"profileID"`
+	Exclusions    []string                      `yaml:"exclusions"`
+	Deployments   []string                      `yaml:"deployments"`
+	WinGetConfig  *wingetcfg.WinGetCfg          `yaml:"config,omitempty"`
+	AnsibleConfig []*ansiblecfg.AnsiblePlaybook `yaml:"ansible,omitempty"`
 }
 
 func (w *Worker) SubscribeToAgentWorkerQueues() error {
@@ -56,12 +59,19 @@ func (w *Worker) SubscribeToAgentWorkerQueues() error {
 	}
 	log.Printf("[INFO]: subscribed to message agentconfig")
 
-	_, err = w.NATSConnection.QueueSubscribe("wingetcfg.profiles", "openuem-agents", w.ApplyEndpointProfiles)
+	_, err = w.NATSConnection.QueueSubscribe("wingetcfg.profiles", "openuem-agents", w.ApplyWindowsEndpointProfiles)
 	if err != nil {
 		log.Printf("[ERROR]: could not subscribe to wingetcfg.profiles NATS message, reason: %v", err)
 		return err
 	}
 	log.Printf("[INFO]: subscribed to message wingetcfg.profiles")
+
+	_, err = w.NATSConnection.QueueSubscribe("ansiblecfg.profiles", "openuem-agents", w.ApplyUnixEndpointProfiles)
+	if err != nil {
+		log.Printf("[ERROR]: could not subscribe to ansiblecfg.profiles NATS message, reason: %v", err)
+		return err
+	}
+	log.Printf("[INFO]: subscribed to message ansiblecfg.profiles")
 
 	_, err = w.NATSConnection.QueueSubscribe("wingetcfg.deploy", "openuem-agents", w.WinGetCfgDeploymentReport)
 	if err != nil {
@@ -208,9 +218,9 @@ func (w *Worker) DeployResultReceivedHandler(msg *nats.Msg) {
 	}
 }
 
-func (w *Worker) ApplyEndpointProfiles(msg *nats.Msg) {
+func (w *Worker) ApplyWindowsEndpointProfiles(msg *nats.Msg) {
 	configurations := []ProfileConfig{}
-	profileRequest := openuem_nats.WingetCfgProfiles{}
+	profileRequest := openuem_nats.CfgProfiles{}
 
 	// log.Println("[DEBUG]: received a wingetcfg.profiles message")
 
@@ -256,7 +266,7 @@ func (w *Worker) ApplyEndpointProfiles(msg *nats.Msg) {
 		}
 
 		// Generate WinGet config
-		p.Config, err = w.GenerateWinGetConfig(profile)
+		p.WinGetConfig, err = w.GenerateWinGetConfig(profile)
 		if err != nil {
 			log.Printf("[ERROR]: could not generate config for profile: %s, reason: %v", profile.Name, err)
 			continue
@@ -278,6 +288,67 @@ func (w *Worker) ApplyEndpointProfiles(msg *nats.Msg) {
 	}
 
 	// log.Println("[DEBUG]: should have responded to wingetcfg.profiles message for: ", profileRequest.AgentID)
+}
+
+func (w *Worker) ApplyUnixEndpointProfiles(msg *nats.Msg) {
+	configurations := []ProfileConfig{}
+	profileRequest := openuem_nats.CfgProfiles{}
+
+	// log.Println("[DEBUG]: received a wingetcfg.profiles message")
+
+	// Unmarshal data and get agentID
+	if err := json.Unmarshal(msg.Data, &profileRequest); err != nil {
+		log.Println("[ERROR]: could not unmarshall profile request")
+		return
+	}
+
+	// Check agentID
+	if profileRequest.AgentID == "" {
+		log.Println("[ERROR]: agentID must not be empty")
+		return
+	}
+
+	// log.Println("[DEBUG]: received a wingetcfg.profiles message for: ", profileRequest.AgentID)
+
+	// Get profiles that should apply to this agent
+	profiles, err := w.GetAppliedProfiles(profileRequest.AgentID)
+	if err != nil {
+		log.Printf("[ERROR]: could not get applied profiles, reason: %v", err)
+		return
+	}
+
+	// Generate config for each profile to be applied
+	for _, profile := range profiles {
+		p := ProfileConfig{
+			ProfileID:     profile.ID,
+			AnsibleConfig: []*ansiblecfg.AnsiblePlaybook{},
+		}
+
+		// Generate Ansible config
+		ansibleConfig, err := w.GenerateAnsibleConfig(profile)
+		if err != nil {
+			log.Printf("[ERROR]: could not generate config for profile: %s, reason: %v", profile.Name, err)
+			continue
+		}
+
+		p.AnsibleConfig = append(p.AnsibleConfig, ansibleConfig)
+
+		configurations = append(configurations, p)
+	}
+
+	// Send response
+	data, err := yaml.Marshal(configurations)
+	if err != nil {
+		log.Printf("[ERROR]: could not marshal configurations, reason: %v", err)
+	}
+
+	// log.Println("[DEBUG]: going to respond wingetcfg.profiles message for: ", profileRequest.AgentID)
+
+	if err := msg.Respond(data); err != nil {
+		log.Printf("[ERROR]: could not send wingetcfg message with profiles to the agent, reason: %v\n", err)
+	}
+
+	log.Println("Ansible config", string(data))
 }
 
 func (w *Worker) GetAppliedProfiles(agentID string) ([]*ent.Profile, error) {
@@ -421,6 +492,144 @@ func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCf
 		}
 	}
 	return cfg, nil
+}
+
+func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile) (*ansiblecfg.AnsiblePlaybook, error) {
+	var err error
+
+	if len(profile.Edges.Tasks) == 0 {
+		return nil, errors.New("profile has no tasks")
+	}
+
+	pb := ansiblecfg.NewAnsiblePlaybook()
+	pb.Name = profile.Name
+
+	idCmp := func(a, b *ent.Task) int {
+		return cmp.Compare(a.ID, b.ID)
+	}
+
+	slices.SortFunc(profile.Edges.Tasks, idCmp)
+
+	for i, t := range profile.Edges.Tasks {
+		switch t.Type {
+		case task.TypeAddUnixLocalGroup:
+			var gid int
+
+			if t.LocalGroupID != "" {
+				gid, err = strconv.Atoi(t.LocalGroupID)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			addLocalGroup, err := ansiblecfg.AddLocalGroup(fmt.Sprintf("task_%d", i), t.LocalGroupName, gid, t.LocalGroupSystem)
+			if err != nil {
+				return nil, err
+			}
+			pb.AddAnsibleTask(addLocalGroup)
+
+		case task.TypeAddLinuxLocalUser:
+			var expires float64
+			var password_expire_account_disable int
+			var password_expire_max int
+			var password_expire_min int
+			var password_expire_warn int
+			var ssh_key_bits int
+			var uid int
+			var uid_max int
+			var uid_min int
+
+			if t.LocalUserExpires != "" {
+				expires, err = strconv.ParseFloat(t.LocalUserExpires, 64)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			if t.LocalUserPasswordExpireAccountDisable != "" {
+				password_expire_account_disable, err = strconv.Atoi(t.LocalUserPasswordExpireAccountDisable)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			if t.LocalUserPasswordExpireMax != "" {
+				password_expire_max, err = strconv.Atoi(t.LocalUserPasswordExpireMax)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			if t.LocalUserPasswordExpireMin != "" {
+				password_expire_min, err = strconv.Atoi(t.LocalUserPasswordExpireMin)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			if t.LocalUserPasswordExpireWarn != "" {
+				password_expire_warn, err = strconv.Atoi(t.LocalUserPasswordExpireWarn)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			if t.LocalUserSSHKeyBits != "" {
+				ssh_key_bits, err = strconv.Atoi(t.LocalUserSSHKeyBits)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			if t.LocalUserID != "" {
+				uid, err = strconv.Atoi(t.LocalUserID)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			if t.LocalUserIDMax != "" {
+				uid_max, err = strconv.Atoi(t.LocalUserIDMax)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			if t.LocalUserIDMin != "" {
+				uid_min, err = strconv.Atoi(t.LocalUserIDMin)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			addLinuxUser, err := ansiblecfg.AddLinuxLocalUser(fmt.Sprintf("task_%d", i), t.LocalUserAppend, t.LocalUserDescription,
+				t.LocalUserCreateHome, expires, t.LocalUserForce, t.LocalUserGenerateSSHKey, t.LocalUserGroup, t.LocalUserGroups,
+				t.LocalUserHome, t.LocalUserUsername, t.LocalUserNonunique, t.LocalUserPassword, password_expire_account_disable, password_expire_max,
+				password_expire_min, password_expire_warn, t.LocalUserPasswordLock, t.LocalUserShell, t.LocalUserSkeleton, ssh_key_bits,
+				t.LocalUserSSHKeyComment, t.LocalUserSSHKeyFile, t.LocalUserSSHKeyPassphrase, t.LocalUserSSHKeyType,
+				t.LocalUserSystem, t.LocalUserUmask, uid, uid_max, uid_min)
+
+			if err != nil {
+				return nil, err
+			}
+			pb.AddAnsibleTask(addLinuxUser)
+
+		case task.TypeRemoveLinuxLocalUser:
+			removeLinux, err := ansiblecfg.RemoveLinuxLocalUser(fmt.Sprintf("task_%d", i), t.LocalUserForce, t.LocalUserUsername)
+			if err != nil {
+				return nil, err
+			}
+			pb.AddAnsibleTask(removeLinux)
+
+		case task.TypeRemoveUnixLocalGroup:
+			removeLocalGroup, err := ansiblecfg.RemoveLocalGroup(fmt.Sprintf("task_%d", i), t.LocalGroupName, t.LocalGroupForce)
+			if err != nil {
+				return nil, err
+			}
+			pb.AddAnsibleTask(removeLocalGroup)
+		}
+	}
+	return pb, nil
 }
 
 func (w *Worker) WinGetCfgDeploymentReport(msg *nats.Msg) {
