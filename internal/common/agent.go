@@ -627,6 +627,13 @@ func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile) (*ansiblecfg.Ansibl
 				return nil, err
 			}
 			pb.AddAnsibleTask(removeLocalGroup)
+
+		case task.TypeUnixScript:
+			executeScript, err := ansiblecfg.ExecuteScript(fmt.Sprintf("task_%d", i), t.Script, t.ScriptExecutable, string(t.ScriptRun), t.ScriptCreates, t.AgentType.String())
+			if err != nil {
+				return nil, err
+			}
+			pb.AddAnsibleTask(executeScript)
 		}
 	}
 	return pb, nil
