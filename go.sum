@@ -70,6 +70,8 @@ github.com/open-uem/ent v0.0.0-20250705072807-ff6873663f9c h1:TMQmSuPj32k9f404Ux
 github.com/open-uem/ent v0.0.0-20250705072807-ff6873663f9c/go.mod h1:TkCPQ+cFFwCdDflqc2/XKTZIN/ZJGJenbvUSIZOEzsk=
 github.com/open-uem/ent v0.0.0-20250705084734-a5a3c8a23a67 h1:mVNFltKC3Bxatv8VhfJAXCoRt0+YaudEEV2adBFnfEc=
 github.com/open-uem/ent v0.0.0-20250705084734-a5a3c8a23a67/go.mod h1:TkCPQ+cFFwCdDflqc2/XKTZIN/ZJGJenbvUSIZOEzsk=
+github.com/open-uem/ent v0.0.0-20250706073942-ebc7440dc5bc h1:OvQNQ9IaCkAp1RQrPVaSxfqaEz/t0K+Au6ZM7M7c54Q=
+github.com/open-uem/ent v0.0.0-20250706073942-ebc7440dc5bc/go.mod h1:TkCPQ+cFFwCdDflqc2/XKTZIN/ZJGJenbvUSIZOEzsk=
 github.com/open-uem/nats v0.0.0-20250514125548-3bae96c53080 h1:Sq5vg52YJni0pifg2+4FnK8u/lXrOFEKQJ6CCDkfCUo=
 github.com/open-uem/nats v0.0.0-20250514125548-3bae96c53080/go.mod h1:JB6zAM56L+iD+BLn3o/vNdg9X5IFn52dSvltnIdiQAQ=
 github.com/open-uem/nats v0.0.0-20250630060536-99ac24ef63c9 h1:x+LvF/u1G0Pr08kK3bAxMlmKYBI4hd+sbAmlvJFWFT8=
@@ -112,6 +114,10 @@ github.com/open-uem/openuem-ansible-config v0.0.0-20250705083150-30432408eab7 h1
 github.com/open-uem/openuem-ansible-config v0.0.0-20250705083150-30432408eab7/go.mod h1:mCdYkT1RTq4V3Ai6TjIfy7QoX68lhpLoF63+YXpPXFI=
 github.com/open-uem/openuem-ansible-config v0.0.0-20250705084556-02eba3c95db9 h1:Ng8Si7dlIYB6QVzNn16kS1QqQh86xdXPl4DVFEPElfE=
 github.com/open-uem/openuem-ansible-config v0.0.0-20250705084556-02eba3c95db9/go.mod h1:mCdYkT1RTq4V3Ai6TjIfy7QoX68lhpLoF63+YXpPXFI=
+github.com/open-uem/openuem-ansible-config v0.0.0-20250706073715-5af1b7385a31 h1:V/epT3IFaojXAjxphgyq5PLjAdYshq3hVrWSC00kT6g=
+github.com/open-uem/openuem-ansible-config v0.0.0-20250706073715-5af1b7385a31/go.mod h1:mCdYkT1RTq4V3Ai6TjIfy7QoX68lhpLoF63+YXpPXFI=
+github.com/open-uem/openuem-ansible-config v0.0.0-20250707084031-72acbc51bf96 h1:eRBtOzl0hoygRzLSDjRDiqfPvjIxc2O+bwqYxxn9Oxs=
+github.com/open-uem/openuem-ansible-config v0.0.0-20250707084031-72acbc51bf96/go.mod h1:mCdYkT1RTq4V3Ai6TjIfy7QoX68lhpLoF63+YXpPXFI=
 github.com/open-uem/utils v0.0.0-20250611060546-cab35b3801b9 h1:u54f6Oq97w7FDHl9oOWKe97TRddxhfqrAPCdXRwiF2A=
 github.com/open-uem/utils v0.0.0-20250611060546-cab35b3801b9/go.mod h1:nPL4xlsiCPyUiF8ntnyrlyz+pVjizIC+N5+TOvj3TLc=
 github.com/open-uem/wingetcfg v0.0.0-20250625110454-5d9433af7cf3 h1:vjCfQw884vSM8Roxpm0mqMrefolE4Hd2jIvi99MBo+E=

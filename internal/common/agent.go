@@ -629,11 +629,23 @@ func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile) (*ansiblecfg.Ansibl
 			pb.AddAnsibleTask(removeLocalGroup)
 
 		case task.TypeUnixScript:
-			executeScript, err := ansiblecfg.ExecuteScript(fmt.Sprintf("task_%d", i), t.Script, t.ScriptExecutable, string(t.ScriptRun), t.ScriptCreates, t.AgentType.String())
+			executeScript, err := ansiblecfg.ExecuteScript(fmt.Sprintf("task_%d", i), t.Script, t.ScriptExecutable, t.ScriptCreates, t.AgentType.String())
 			if err != nil {
 				return nil, err
 			}
 			pb.AddAnsibleTask(executeScript)
+		case task.TypeFlatpakInstall:
+			install, err := ansiblecfg.InstallFlatpakPackage(fmt.Sprintf("task_%d", i), t.PackageID, t.PackageLatest)
+			if err != nil {
+				return nil, err
+			}
+			pb.AddAnsibleTask(install)
+		case task.TypeFlatpakUninstall:
+			uninstall, err := ansiblecfg.UninstallFlatpakPackage(fmt.Sprintf("task_%d", i), t.PackageID)
+			if err != nil {
+				return nil, err
+			}
+			pb.AddAnsibleTask(uninstall)
 		}
 	}
 	return pb, nil
