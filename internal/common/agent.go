@@ -294,8 +294,6 @@ func (w *Worker) ApplyUnixEndpointProfiles(msg *nats.Msg) {
 	configurations := []ProfileConfig{}
 	profileRequest := openuem_nats.CfgProfiles{}
 
-	// log.Println("[DEBUG]: received a wingetcfg.profiles message")
-
 	// Unmarshal data and get agentID
 	if err := json.Unmarshal(msg.Data, &profileRequest); err != nil {
 		log.Println("[ERROR]: could not unmarshall profile request")
@@ -307,8 +305,6 @@ func (w *Worker) ApplyUnixEndpointProfiles(msg *nats.Msg) {
 		log.Println("[ERROR]: agentID must not be empty")
 		return
 	}
-
-	// log.Println("[DEBUG]: received a wingetcfg.profiles message for: ", profileRequest.AgentID)
 
 	// Get profiles that should apply to this agent
 	profiles, err := w.GetAppliedProfiles(profileRequest.AgentID)
@@ -342,13 +338,9 @@ func (w *Worker) ApplyUnixEndpointProfiles(msg *nats.Msg) {
 		log.Printf("[ERROR]: could not marshal configurations, reason: %v", err)
 	}
 
-	// log.Println("[DEBUG]: going to respond wingetcfg.profiles message for: ", profileRequest.AgentID)
-
 	if err := msg.Respond(data); err != nil {
 		log.Printf("[ERROR]: could not send wingetcfg message with profiles to the agent, reason: %v\n", err)
 	}
-
-	log.Println("Ansible config", string(data))
 }
 
 func (w *Worker) GetAppliedProfiles(agentID string) ([]*ent.Profile, error) {
@@ -528,7 +520,7 @@ func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile) (*ansiblecfg.Ansibl
 			}
 			pb.AddAnsibleTask(addLocalGroup)
 
-		case task.TypeAddLinuxLocalUser:
+		case task.TypeAddUnixLocalUser:
 			var expires float64
 			var password_expire_account_disable int
 			var password_expire_max int
@@ -602,20 +594,20 @@ func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile) (*ansiblecfg.Ansibl
 				}
 			}
 
-			addLinuxUser, err := ansiblecfg.AddLinuxLocalUser(fmt.Sprintf("task_%d", i), t.LocalUserAppend, t.LocalUserDescription,
+			addLinuxUser, err := ansiblecfg.AddLocalUser(fmt.Sprintf("task_%d", i), t.LocalUserAppend, t.LocalUserDescription,
 				t.LocalUserCreateHome, expires, t.LocalUserForce, t.LocalUserGenerateSSHKey, t.LocalUserGroup, t.LocalUserGroups,
 				t.LocalUserHome, t.LocalUserUsername, t.LocalUserNonunique, t.LocalUserPassword, password_expire_account_disable, password_expire_max,
 				password_expire_min, password_expire_warn, t.LocalUserPasswordLock, t.LocalUserShell, t.LocalUserSkeleton, ssh_key_bits,
 				t.LocalUserSSHKeyComment, t.LocalUserSSHKeyFile, t.LocalUserSSHKeyPassphrase, t.LocalUserSSHKeyType,
-				t.LocalUserSystem, t.LocalUserUmask, uid, uid_max, uid_min)
+				t.LocalUserSystem, t.LocalUserUmask, uid, uid_max, uid_min, t.AgentType.String())
 
 			if err != nil {
 				return nil, err
 			}
 			pb.AddAnsibleTask(addLinuxUser)
 
-		case task.TypeRemoveLinuxLocalUser:
-			removeLinux, err := ansiblecfg.RemoveLinuxLocalUser(fmt.Sprintf("task_%d", i), t.LocalUserForce, t.LocalUserUsername)
+		case task.TypeRemoveLocalUser:
+			removeLinux, err := ansiblecfg.RemoveLocalUser(fmt.Sprintf("task_%d", i), t.LocalUserForce, t.LocalUserUsername)
 			if err != nil {
 				return nil, err
 			}
@@ -642,6 +634,42 @@ func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile) (*ansiblecfg.Ansibl
 			pb.AddAnsibleTask(install)
 		case task.TypeFlatpakUninstall:
 			uninstall, err := ansiblecfg.UninstallFlatpakPackage(fmt.Sprintf("task_%d", i), t.PackageID)
+			if err != nil {
+				return nil, err
+			}
+			pb.AddAnsibleTask(uninstall)
+		case task.TypeBrewFormulaInstall:
+			install, err := ansiblecfg.InstallHomeBrewFormula(fmt.Sprintf("task_%d", i), t.PackageID, t.BrewInstallOptions, t.BrewUpdate)
+			if err != nil {
+				return nil, err
+			}
+			pb.AddAnsibleTask(install)
+		case task.TypeBrewFormulaUpgrade:
+			upgrade, err := ansiblecfg.UpgradeHomeBrewFormula(fmt.Sprintf("task_%d", i), t.PackageID, t.BrewUpdate, t.BrewUpgradeAll, t.BrewUpgradeOptions)
+			if err != nil {
+				return nil, err
+			}
+			pb.AddAnsibleTask(upgrade)
+		case task.TypeBrewFormulaUninstall:
+			uninstall, err := ansiblecfg.UninstallHomeBrewFormula(fmt.Sprintf("task_%d", i), t.PackageID)
+			if err != nil {
+				return nil, err
+			}
+			pb.AddAnsibleTask(uninstall)
+		case task.TypeBrewCaskInstall:
+			install, err := ansiblecfg.InstallHomeBrewCask(fmt.Sprintf("task_%d", i), t.PackageID, t.BrewInstallOptions, t.BrewUpdate)
+			if err != nil {
+				return nil, err
+			}
+			pb.AddAnsibleTask(install)
+		case task.TypeBrewCaskUpgrade:
+			upgrade, err := ansiblecfg.UpgradeHomeBrewCask(fmt.Sprintf("task_%d", i), t.PackageID, t.BrewGreedy, t.BrewUpdate, t.BrewUpgradeAll)
+			if err != nil {
+				return nil, err
+			}
+			pb.AddAnsibleTask(upgrade)
+		case task.TypeBrewCaskUninstall:
+			uninstall, err := ansiblecfg.UninstallHomeBrewCask(fmt.Sprintf("task_%d", i), t.PackageID)
 			if err != nil {
 				return nil, err
 			}
