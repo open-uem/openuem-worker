@@ -11,7 +11,7 @@ require (
 	github.com/open-uem/ent v0.0.0-20250709115553-5f5c33d1ce0e
 	github.com/open-uem/nats v0.0.0-20250630060536-99ac24ef63c9
 	github.com/open-uem/openuem-ansible-config v0.0.0-20250710075757-9ef6e3390073
-	github.com/open-uem/utils v0.0.0-20250611060546-cab35b3801b9
+	github.com/open-uem/utils v0.0.0-20250702121339-316c5b599cd3
 	github.com/open-uem/wingetcfg v0.0.0-20250625110454-5d9433af7cf3
 	github.com/urfave/cli/v2 v2.27.6
 	github.com/wneessen/go-mail v0.6.2
