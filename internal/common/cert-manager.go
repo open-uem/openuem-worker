@@ -213,7 +213,7 @@ func (w *Worker) NewUserCertificateHandler(msg *nats.Msg) {
 	}
 
 	if err := msg.Ack(); err != nil {
-		log.Println("[ERROR]: could not sent response", err.Error())
+		log.Println("[ERROR]: could not send response", err.Error())
 		return
 	}
 }
@@ -266,11 +266,6 @@ func (w *Worker) NewAgentCertificateHandler(msg *nats.Msg) {
 	if err := w.Model.SaveCertificate(w.Cert.SerialNumber.Int64(), certificate.Type("agent"), "", certDescription, w.Cert.NotAfter); err != nil {
 		log.Println("[ERROR]: error saving certificate status", err.Error())
 		msg.NakWithDelay(10 * time.Minute)
-		return
-	}
-
-	if err := msg.Ack(); err != nil {
-		log.Println("[ERROR]: could not sent response", err.Error())
 		return
 	}
 }
