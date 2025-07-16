@@ -47,7 +47,7 @@ func (w *Worker) SendConfirmEmailHandler(msg *nats.Msg) {
 	}
 
 	if err := msg.Ack(); err != nil {
-		log.Printf("[ERROR]: could not sent ACK, reason: %v", err.Error())
+		log.Printf("[ERROR]: could not send ACK, reason: %v", err.Error())
 		return
 	}
 }
@@ -89,7 +89,7 @@ func (w *Worker) SendUserCertificateHandler(msg *nats.Msg) {
 	}
 
 	if err := msg.Ack(); err != nil {
-		log.Printf("[ERROR]: could not sent response, reason: %v", err.Error())
+		log.Printf("[ERROR]: could not send response, reason: %v", err.Error())
 		return
 	}
 }
