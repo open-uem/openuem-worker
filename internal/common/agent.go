@@ -384,13 +384,13 @@ func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCf
 	for i, t := range profile.Edges.Tasks {
 		switch t.Type {
 		case task.TypeWingetInstall:
-			installPackage, err := wingetcfg.InstallPackage(fmt.Sprintf("task_%d", i), t.PackageName, t.PackageID, "winget", "", true)
+			installPackage, err := wingetcfg.InstallPackage(fmt.Sprintf("task_%d", i), t.PackageName, t.PackageID, "winget", t.PackageVersion, t.PackageLatest)
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(installPackage)
 		case task.TypeWingetDelete:
-			uninstallPackage, err := wingetcfg.UninstallPackage(fmt.Sprintf("task_%d", i), t.PackageName, t.PackageID, "winget", "", true)
+			uninstallPackage, err := wingetcfg.UninstallPackage(fmt.Sprintf("task_%d", i), t.PackageName, t.PackageID, "winget", t.PackageVersion, t.PackageLatest)
 			if err != nil {
 				return nil, err
 			}
