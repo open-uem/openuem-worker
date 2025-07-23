@@ -74,6 +74,8 @@ github.com/open-uem/ent v0.0.0-20250709115553-5f5c33d1ce0e h1:o+1fDjD/2QEIfHiZOa
 github.com/open-uem/ent v0.0.0-20250709115553-5f5c33d1ce0e/go.mod h1:TkCPQ+cFFwCdDflqc2/XKTZIN/ZJGJenbvUSIZOEzsk=
 github.com/open-uem/ent v0.0.0-20250721070241-c889cedf4b96 h1:0Njk4YzDe4xqAt2nBDZxOaR4EpBeHryVRO+SN3c/pFY=
 github.com/open-uem/ent v0.0.0-20250721070241-c889cedf4b96/go.mod h1:TkCPQ+cFFwCdDflqc2/XKTZIN/ZJGJenbvUSIZOEzsk=
+github.com/open-uem/ent v0.0.0-20250722154529-0b671cef1d0f h1:tVT5onH61jSuYKTE23tXv6JDCn69Y1PVmKvsUkPRFr0=
+github.com/open-uem/ent v0.0.0-20250722154529-0b671cef1d0f/go.mod h1:TkCPQ+cFFwCdDflqc2/XKTZIN/ZJGJenbvUSIZOEzsk=
 github.com/open-uem/nats v0.0.0-20250630060536-99ac24ef63c9 h1:x+LvF/u1G0Pr08kK3bAxMlmKYBI4hd+sbAmlvJFWFT8=
 github.com/open-uem/nats v0.0.0-20250630060536-99ac24ef63c9/go.mod h1:JB6zAM56L+iD+BLn3o/vNdg9X5IFn52dSvltnIdiQAQ=
 github.com/open-uem/nats v0.0.0-20250717101700-45922fb3baa4 h1:2C06YscYCr0NJHyKmqAHmNZwm/6x7qXjcdnLy8efEs8=
@@ -84,6 +86,8 @@ github.com/open-uem/utils v0.0.0-20250702121339-316c5b599cd3 h1:rSazfmqI9ZVLybnp
 github.com/open-uem/utils v0.0.0-20250702121339-316c5b599cd3/go.mod h1:nPL4xlsiCPyUiF8ntnyrlyz+pVjizIC+N5+TOvj3TLc=
 github.com/open-uem/wingetcfg v0.0.0-20250625110454-5d9433af7cf3 h1:vjCfQw884vSM8Roxpm0mqMrefolE4Hd2jIvi99MBo+E=
 github.com/open-uem/wingetcfg v0.0.0-20250625110454-5d9433af7cf3/go.mod h1:b2rmcb7kD/AODHdvHGZ8TpzhX4qrkdDPrEGM5FmOBxQ=
+github.com/open-uem/wingetcfg v0.0.0-20250723054912-02f24a659219 h1:Ei1W1FG/RV8s6ZPEk7hmC1jDh/OYpzz4BYyu8aP5X8w=
+github.com/open-uem/wingetcfg v0.0.0-20250723054912-02f24a659219/go.mod h1:b2rmcb7kD/AODHdvHGZ8TpzhX4qrkdDPrEGM5FmOBxQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/robfig/cron/v3 v3.0.1 h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=
