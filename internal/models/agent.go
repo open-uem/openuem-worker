@@ -160,6 +160,9 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string, autoAdmitA
 			query.SetAgentStatus(agent.AgentStatusEnabled)
 		}
 
+		// This is a new agent, we must set the nickname to the agent's hostname initially
+		query.SetNickname(data.Hostname)
+
 		// Set the associated site
 		if data.Site == "" {
 			s, err := m.GetDefaultSite()
