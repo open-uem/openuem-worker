@@ -737,7 +737,6 @@ func checkIfRemote(data *nats.AgentReport, servers string) bool {
 	// Check if we can find the DNS record for the agent
 	addresses, err := net.LookupHost(strings.ToLower(data.Hostname) + domain)
 	if err != nil {
-		log.Printf("[ERROR]: there was an issue trying to lookup host, reason: %v", err)
 		return false
 	}
 
