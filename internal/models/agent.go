@@ -22,6 +22,7 @@ import (
 	"github.com/open-uem/ent/monitor"
 	"github.com/open-uem/ent/networkadapter"
 	"github.com/open-uem/ent/operatingsystem"
+	"github.com/open-uem/ent/physicaldisk"
 	"github.com/open-uem/ent/printer"
 	"github.com/open-uem/ent/release"
 	"github.com/open-uem/ent/settings"
@@ -385,6 +386,36 @@ func (m *Model) SaveLogicalDisksInfo(data *nats.AgentReport) error {
 			SetFilesystem(driveData.Filesystem).
 			SetRemainingSpaceInUnits(driveData.RemainingSpaceInUnits).
 			SetBitlockerStatus(driveData.BitLockerStatus).
+			SetOwnerID(data.AgentID).
+			Exec(ctx); err != nil {
+			return tx.Rollback()
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (m *Model) SavePhysicalDisksInfo(data *nats.AgentReport) error {
+	ctx := context.Background()
+
+	tx, err := m.Client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.PhysicalDisk.Delete().Where(physicaldisk.HasOwnerWith(agent.ID(data.AgentID))).Exec(ctx)
+	if err != nil {
+		log.Printf("could not delete previous physical disks information: %v", err)
+		return tx.Rollback()
+	}
+
+	for _, driveData := range data.PhysicalDisks {
+		if err := tx.PhysicalDisk.
+			Create().
+			SetDeviceID(driveData.DeviceID).
+			SetModel(driveData.Model).
+			SetSerialNumber(driveData.SerialNumber).
+			SetSizeInUnits(driveData.SizeInUnits).
 			SetOwnerID(data.AgentID).
 			Exec(ctx); err != nil {
 			return tx.Rollback()

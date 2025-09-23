@@ -172,6 +172,10 @@ func (w *Worker) ReportReceivedHandler(msg *nats.Msg) {
 		log.Printf("[ERROR]: could not save logical disks info into database, reason: %v\n", err)
 	}
 
+	if err := w.Model.SavePhysicalDisksInfo(&data); err != nil {
+		log.Printf("[ERROR]: could not save physical disks info into database, reason: %v\n", err)
+	}
+
 	if err := w.Model.SavePrintersInfo(&data); err != nil {
 		log.Printf("[ERROR]: could not save printers info into database, reason: %v\n", err)
 	}
