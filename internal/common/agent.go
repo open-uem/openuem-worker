@@ -9,7 +9,6 @@ import (
 	"log"
 	"slices"
 	"strconv"
-	"strings"
 
 	"github.com/nats-io/nats.go"
 	"github.com/open-uem/ent"
@@ -249,6 +248,40 @@ func (w *Worker) ApplyWindowsEndpointProfiles(msg *nats.Msg) {
 		return
 	}
 
+	// Alternative: the agent worker is going to check for excluded packages
+	// deployments, err := w.Model.GetDeployedPackages(profileRequest.AgentID)
+	// if err != nil {
+	// 	log.Printf("[ERROR]: could not get deployed packages with WinGet, reason: %v", err)
+	// 	return
+	// }
+
+	// installedApps, err := w.Model.GetAgentApps(profileRequest.AgentID)
+	// if err != nil {
+	// 	log.Printf("[ERROR]: could not get apps installed reported by the agent, reason: %v", err)
+	// 	return
+	// }
+
+	// // Check if a deployed app with winget has been uninstalled in the endpoint
+	// for _, d := range deployments {
+	// 	installed := false
+	// 	for _, app := range installedApps {
+	// 		if d.Name == app.Name {
+	// 			installed = true
+	// 			break
+	// 		}
+	// 	}
+	// 	if !installed {
+	// 		// We must remove it from our deployments and also add it to the exclusion list
+	// 		data := openuem_nats.DeployAction{}
+	// 		data.AgentId = profileRequest.AgentID
+	// 		data.PackageId = d.PackageID
+	// 		if err := w.Model.MarkPackageAsExcluded(data); err != nil {
+	// 			log.Printf("[ERROR]: could not set package %s as excluded, reason: %v", d.PackageID, err)
+	// 		}
+	// 	}
+	// }
+
+	// Now inform which packages has been excluded to the agent
 	exclusions, err := w.Model.GetExcludedWinGetPackages(profileRequest.AgentID)
 	if err != nil {
 		log.Printf("[ERROR]: could not get WinGetCfg packages exclusions, reason: %v", err)
@@ -385,100 +418,102 @@ func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCf
 
 	slices.SortFunc(profile.Edges.Tasks, idCmp)
 
-	for i, t := range profile.Edges.Tasks {
+	for _, t := range profile.Edges.Tasks {
+		taskID := fmt.Sprintf("task_%d_%d", t.ID, t.Version)
+
 		switch t.Type {
 		case task.TypeWingetInstall:
-			installPackage, err := wingetcfg.InstallPackage(fmt.Sprintf("task_%d", i), t.PackageName, t.PackageID, "winget", t.PackageVersion, t.PackageLatest)
+			installPackage, err := wingetcfg.InstallPackage(taskID, t.PackageName, t.PackageID, "winget", t.PackageVersion, t.PackageLatest)
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(installPackage)
 		case task.TypeWingetDelete:
-			uninstallPackage, err := wingetcfg.UninstallPackage(fmt.Sprintf("task_%d", i), t.PackageName, t.PackageID, "winget", t.PackageVersion, t.PackageLatest)
+			uninstallPackage, err := wingetcfg.UninstallPackage(taskID, t.PackageName, t.PackageID, "winget", t.PackageVersion, t.PackageLatest)
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(uninstallPackage)
 		case task.TypeAddRegistryKey:
-			registryKey, err := wingetcfg.AddRegistryKey(fmt.Sprintf("task_%d", i), t.Name, t.RegistryKey)
+			registryKey, err := wingetcfg.AddRegistryKey(taskID, t.Name, t.RegistryKey)
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(registryKey)
 		case task.TypeRemoveRegistryKey:
-			registryKey, err := wingetcfg.RemoveRegistryKey(fmt.Sprintf("task_%d", i), t.Name, t.RegistryKey, t.RegistryForce)
+			registryKey, err := wingetcfg.RemoveRegistryKey(taskID, t.Name, t.RegistryKey, t.RegistryForce)
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(registryKey)
 		case task.TypeUpdateRegistryKeyDefaultValue:
-			registryKey, err := wingetcfg.UpdateRegistryKeyDefaultValue(fmt.Sprintf("task_%d", i), t.Name, t.RegistryKey, string(t.RegistryKeyValueType), strings.Split(t.RegistryKeyValueData, "\n"), t.RegistryForce)
+			registryKey, err := wingetcfg.UpdateRegistryKeyDefaultValue(taskID, t.Name, t.RegistryKey, string(t.RegistryKeyValueType), t.RegistryKeyValueData, t.RegistryForce)
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(registryKey)
 		case task.TypeAddRegistryKeyValue:
-			registryKey, err := wingetcfg.AddRegistryValue(fmt.Sprintf("task_%d", i), t.Name, t.RegistryKey, t.RegistryKeyValueName, string(t.RegistryKeyValueType), strings.Split(t.RegistryKeyValueData, "\n"), t.RegistryHex, t.RegistryForce)
+			registryKey, err := wingetcfg.AddRegistryValue(taskID, t.Name, t.RegistryKey, t.RegistryKeyValueName, string(t.RegistryKeyValueType), t.RegistryKeyValueData, t.RegistryHex, t.RegistryForce)
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(registryKey)
 		case task.TypeRemoveRegistryKeyValue:
-			registryKey, err := wingetcfg.RemoveRegistryValue(fmt.Sprintf("task_%d", i), t.Name, t.RegistryKey, t.RegistryKeyValueName)
+			registryKey, err := wingetcfg.RemoveRegistryValue(taskID, t.Name, t.RegistryKey, t.RegistryKeyValueName)
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(registryKey)
 		case task.TypeAddLocalUser:
-			localUser, err := wingetcfg.AddOrModifyLocalUser(fmt.Sprintf("task_%d", i), t.LocalUserUsername, t.LocalUserDescription, t.LocalUserDisable, t.LocalUserFullname, t.LocalUserPassword, t.LocalUserPasswordChangeNotAllowed, t.LocalUserPasswordChangeRequired, t.LocalUserPasswordNeverExpires)
+			localUser, err := wingetcfg.AddOrModifyLocalUser(taskID, t.LocalUserUsername, t.LocalUserDescription, t.LocalUserDisable, t.LocalUserFullname, t.LocalUserPassword, t.LocalUserPasswordChangeNotAllowed, t.LocalUserPasswordChangeRequired, t.LocalUserPasswordNeverExpires)
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(localUser)
 		case task.TypeRemoveLocalUser:
-			localUser, err := wingetcfg.RemoveLocalUser(fmt.Sprintf("task_%d", i), t.LocalUserUsername)
+			localUser, err := wingetcfg.RemoveLocalUser(taskID, t.LocalUserUsername)
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(localUser)
 		case task.TypeAddLocalGroup:
-			localGroup, err := wingetcfg.AddOrModifyLocalGroup(fmt.Sprintf("task_%d", i), t.LocalGroupName, t.LocalGroupDescription, t.LocalGroupMembers)
+			localGroup, err := wingetcfg.AddOrModifyLocalGroup(taskID, t.LocalGroupName, t.LocalGroupDescription, t.LocalGroupMembers)
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(localGroup)
 		case task.TypeRemoveLocalGroup:
-			localGroup, err := wingetcfg.RemoveLocalGroup(fmt.Sprintf("task_%d", i), t.LocalGroupName)
+			localGroup, err := wingetcfg.RemoveLocalGroup(taskID, t.LocalGroupName)
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(localGroup)
 		case task.TypeAddUsersToLocalGroup:
-			localGroup, err := wingetcfg.IncludeMembersToGroup(fmt.Sprintf("task_%d", i), t.LocalGroupName, t.LocalGroupMembersToInclude)
+			localGroup, err := wingetcfg.IncludeMembersToGroup(taskID, t.LocalGroupName, t.LocalGroupMembersToInclude)
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(localGroup)
 		case task.TypeRemoveUsersFromLocalGroup:
-			localGroup, err := wingetcfg.ExcludeMembersFromGroup(fmt.Sprintf("task_%d", i), t.LocalGroupName, t.LocalGroupMembersToExclude)
+			localGroup, err := wingetcfg.ExcludeMembersFromGroup(taskID, t.LocalGroupName, t.LocalGroupMembersToExclude)
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(localGroup)
 		case task.TypeMsiInstall:
-			msiInstall, err := wingetcfg.InstallMSIPackage(fmt.Sprintf("task_%d", i), fmt.Sprintf("Install %s", t.MsiProductid), t.MsiProductid, t.MsiPath, t.MsiArguments, t.MsiLogPath, t.MsiFileHash, string(t.MsiFileHashAlg))
+			msiInstall, err := wingetcfg.InstallMSIPackage(taskID, fmt.Sprintf("Install %s", t.MsiProductid), t.MsiProductid, t.MsiPath, t.MsiArguments, t.MsiLogPath, t.MsiFileHash, string(t.MsiFileHashAlg))
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(msiInstall)
 		case task.TypeMsiUninstall:
-			msiUninstall, err := wingetcfg.UninstallMSIPackage(fmt.Sprintf("task_%d", i), fmt.Sprintf("Uninstall %s", t.MsiProductid), t.MsiProductid, t.MsiPath, t.MsiArguments, t.MsiLogPath, t.MsiFileHash, string(t.MsiFileHashAlg))
+			msiUninstall, err := wingetcfg.UninstallMSIPackage(taskID, fmt.Sprintf("Uninstall %s", t.MsiProductid), t.MsiProductid, t.MsiPath, t.MsiArguments, t.MsiLogPath, t.MsiFileHash, string(t.MsiFileHashAlg))
 			if err != nil {
 				return nil, err
 			}
 			cfg.AddResource(msiUninstall)
 		case task.TypePowershellScript:
-			msiUninstall, err := wingetcfg.ExecutePowershellScript(strconv.Itoa(t.ID), t.Name, t.Script, t.ScriptRun.String())
+			msiUninstall, err := wingetcfg.ExecutePowershellScript(taskID, t.Name, t.Script, t.ScriptRun.String())
 			if err != nil {
 				return nil, err
 			}

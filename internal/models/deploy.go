@@ -134,6 +134,10 @@ func (m *Model) GetDeployedPackages(agentID string) ([]string, error) {
 	return m.Client.Deployment.Query().Where(deployment.HasOwnerWith(agent.ID(agentID))).Select(wingetconfigexclusion.FieldPackageID).Strings(context.Background())
 }
 
+// func (m *Model) GetDeployedPackages(agentID string) ([]*ent.Deployment, error) {
+// 	return m.Client.Deployment.Query().Where(deployment.HasOwnerWith(agent.ID(agentID))).All(context.Background())
+// }
+
 func (m *Model) GetExcludedWinGetPackages(agentID string) ([]string, error) {
 	return m.Client.WingetConfigExclusion.Query().Where(wingetconfigexclusion.HasOwnerWith(agent.ID(agentID))).Select(wingetconfigexclusion.FieldPackageID).Strings(context.Background())
 }
