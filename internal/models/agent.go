@@ -821,3 +821,7 @@ func (m *Model) GetDefaultSite() (*ent.Site, error) {
 func (m *Model) ValidateTenantAndSite(tenantID, siteID int) (bool, error) {
 	return m.Client.Site.Query().Where(site.ID(siteID), site.HasTenantWith(tenant.ID(tenantID))).Exist(context.Background())
 }
+
+func (m *Model) GetAgentApps(agentId string) ([]*ent.App, error) {
+	return m.Client.App.Query().Where(app.HasOwnerWith(agent.ID(agentId), agent.AgentStatusNEQ(agent.AgentStatusWaitingForAdmission))).All(context.Background())
+}
