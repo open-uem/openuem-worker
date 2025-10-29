@@ -4,7 +4,7 @@ go 1.25.3
 
 require (
 	entgo.io/ent v0.14.5
-	github.com/a-h/templ v0.3.960
+	github.com/a-h/templ v0.3.943
 	github.com/go-co-op/gocron/v2 v2.17.0
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/nats-io/nats.go v1.47.0
