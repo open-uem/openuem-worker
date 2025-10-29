@@ -65,6 +65,7 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string, autoAdmitA
 		SetSftpService(!data.SftpServiceDisabled).
 		SetRemoteAssistance(!data.RemoteAssistanceDisabled).
 		SetHasRustdesk(data.HasRustDesk).
+		SetIsFlatpakRustdesk(data.IsFlatpakRustDesk).
 		SetIsWayland(data.IsWayland)
 
 	if exists {
