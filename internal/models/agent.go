@@ -239,6 +239,7 @@ func (m *Model) SaveOSInfo(data *nats.AgentReport) error {
 		SetArch(data.OperatingSystem.Arch).
 		SetUsername(data.OperatingSystem.Username).
 		SetLastBootupTime(data.OperatingSystem.LastBootUpTime).
+		SetDomain(data.OperatingSystem.Domain).
 		SetOwnerID(data.AgentID).
 		OnConflictColumns(operatingsystem.OwnerColumn).
 		UpdateNewValues().
