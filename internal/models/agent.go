@@ -487,6 +487,7 @@ func (m *Model) SaveNetworkAdaptersInfo(data *nats.AgentReport) error {
 			SetDhcpLeaseExpired(networkAdapterData.DHCPLeaseExpired).
 			SetDhcpLeaseObtained(networkAdapterData.DHCPLeaseObtained).
 			SetSpeed(networkAdapterData.Speed).
+			SetVirtual(networkAdapterData.Virtual).
 			SetOwnerID(data.AgentID).
 			Exec(ctx); err != nil {
 			return tx.Rollback()
