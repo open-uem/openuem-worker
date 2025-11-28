@@ -240,6 +240,7 @@ func (m *Model) SaveOSInfo(data *nats.AgentReport) error {
 		SetArch(data.OperatingSystem.Arch).
 		SetUsername(data.OperatingSystem.Username).
 		SetLastBootupTime(data.OperatingSystem.LastBootUpTime).
+		SetDomain(data.OperatingSystem.Domain).
 		SetOwnerID(data.AgentID).
 		OnConflictColumns(operatingsystem.OwnerColumn).
 		UpdateNewValues().
@@ -487,6 +488,7 @@ func (m *Model) SaveNetworkAdaptersInfo(data *nats.AgentReport) error {
 			SetDhcpLeaseExpired(networkAdapterData.DHCPLeaseExpired).
 			SetDhcpLeaseObtained(networkAdapterData.DHCPLeaseObtained).
 			SetSpeed(networkAdapterData.Speed).
+			SetVirtual(networkAdapterData.Virtual).
 			SetOwnerID(data.AgentID).
 			Exec(ctx); err != nil {
 			return tx.Rollback()
