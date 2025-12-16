@@ -20,6 +20,7 @@ import (
 	"github.com/open-uem/ent/logicaldisk"
 	"github.com/open-uem/ent/memoryslot"
 	"github.com/open-uem/ent/monitor"
+	"github.com/open-uem/ent/netbird"
 	"github.com/open-uem/ent/networkadapter"
 	"github.com/open-uem/ent/operatingsystem"
 	"github.com/open-uem/ent/physicaldisk"
@@ -649,6 +650,29 @@ func (m *Model) GetRemoteAssistanceAgentSetting(request nats.RemoteConfigRequest
 
 func (m *Model) SaveRemoteAssistanceAgentSetting(request nats.RemoteConfigRequest, status bool) error {
 	return m.Client.Agent.UpdateOneID(request.AgentID).SetRemoteAssistance(status).Exec(context.Background())
+}
+
+func (m *Model) SaveNetbirdInfo(data *nats.AgentReport) error {
+	return m.Client.Netbird.
+		Create().
+		SetVersion(data.Netbird.Version).
+		SetInstalled(data.Netbird.Installed).
+		SetIP(data.Netbird.IP).
+		SetSSHEnabled(data.Netbird.SSHEnabled).
+		SetProfile(data.Netbird.Profile).
+		SetManagementConnected(data.Netbird.ManagementConnected).
+		SetManagementURL(data.Netbird.ManagementURL).
+		SetSignalConnected(data.Netbird.SignalConnected).
+		SetSignalURL(data.Netbird.SignalURL).
+		SetPeersConnected(data.Netbird.PeersConnected).
+		SetPeersTotal(data.Netbird.PeersTotal).
+		SetServiceStatus(data.Netbird.ServiceStatus).
+		SetProfilesAvailable(strings.Join(data.Netbird.Profiles, ",")).
+		SetDNSServer(strings.Join(data.Netbird.DNSServers, ",")).
+		SetOwnerID(data.AgentID).
+		OnConflictColumns(netbird.OwnerColumn).
+		UpdateNewValues().
+		Exec(context.Background())
 }
 
 func (m *Model) SaveReleaseInfo(data *nats.AgentReport) error {

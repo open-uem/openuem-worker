@@ -4,30 +4,23 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/nats-io/nats.go"
 	"github.com/open-uem/ent"
 	"github.com/open-uem/ent/agent"
 	"github.com/open-uem/ent/task"
 	openuem_nats "github.com/open-uem/nats"
+	"github.com/open-uem/utils"
 	"github.com/open-uem/wingetcfg/wingetcfg"
 
 	ansiblecfg "github.com/open-uem/openuem-ansible-config/ansible"
 	"gopkg.in/yaml.v3"
 )
-
-type ProfileConfig struct {
-	ProfileID     int                           `yaml:"profileID"`
-	Exclusions    []string                      `yaml:"exclusions"`
-	Deployments   []string                      `yaml:"deployments"`
-	WinGetConfig  *wingetcfg.WinGetCfg          `yaml:"config,omitempty"`
-	AnsibleConfig []*ansiblecfg.AnsiblePlaybook `yaml:"ansible,omitempty"`
-}
 
 func (w *Worker) SubscribeToAgentWorkerQueues() error {
 	_, err := w.NATSConnection.QueueSubscribe("report", "openuem-agents", w.ReportReceivedHandler)
@@ -195,6 +188,10 @@ func (w *Worker) ReportReceivedHandler(msg *nats.Msg) {
 		log.Printf("[ERROR]: could not save release info into database, reason: %v\n", err)
 	}
 
+	if err := w.Model.SaveNetbirdInfo(&data); err != nil {
+		log.Printf("[ERROR]: could not save Netbird info into database, reason: %v\n", err)
+	}
+
 	if err := msg.Respond([]byte("Report received!")); err != nil {
 		log.Printf("[ERROR]: could not respond to report message, reason: %v\n", err)
 	}
@@ -222,7 +219,7 @@ func (w *Worker) DeployResultReceivedHandler(msg *nats.Msg) {
 }
 
 func (w *Worker) ApplyWindowsEndpointProfiles(msg *nats.Msg) {
-	configurations := []ProfileConfig{}
+	configurations := []openuem_nats.ProfileConfig{}
 	profileRequest := openuem_nats.CfgProfiles{}
 
 	// log.Println("[DEBUG]: received a wingetcfg.profiles message")
@@ -296,7 +293,7 @@ func (w *Worker) ApplyWindowsEndpointProfiles(msg *nats.Msg) {
 
 	// Generate config for each profile to be applied
 	for _, profile := range profiles {
-		p := ProfileConfig{
+		p := openuem_nats.ProfileConfig{
 			ProfileID:   profile.ID,
 			Exclusions:  exclusions,
 			Deployments: deployments,
@@ -308,6 +305,14 @@ func (w *Worker) ApplyWindowsEndpointProfiles(msg *nats.Msg) {
 			log.Printf("[ERROR]: could not generate config for profile: %s, reason: %v", profile.Name, err)
 			continue
 		}
+
+		// Generate NetBird config
+		netbirdConfig, err := w.GenerateNetbirdConfig(profile, profileRequest.AgentID)
+		if err != nil {
+			log.Printf("[ERROR]: could not generate netbird config for profile: %s, reason: %v", profile.Name, err)
+			continue
+		}
+		p.NetBirdConfig = netbirdConfig
 
 		configurations = append(configurations, p)
 	}
@@ -328,7 +333,7 @@ func (w *Worker) ApplyWindowsEndpointProfiles(msg *nats.Msg) {
 }
 
 func (w *Worker) ApplyUnixEndpointProfiles(msg *nats.Msg) {
-	configurations := []ProfileConfig{}
+	configurations := []openuem_nats.ProfileConfig{}
 	profileRequest := openuem_nats.CfgProfiles{}
 
 	// Unmarshal data and get agentID
@@ -352,7 +357,7 @@ func (w *Worker) ApplyUnixEndpointProfiles(msg *nats.Msg) {
 
 	// Generate config for each profile to be applied
 	for _, profile := range profiles {
-		p := ProfileConfig{
+		p := openuem_nats.ProfileConfig{
 			ProfileID:     profile.ID,
 			AnsibleConfig: []*ansiblecfg.AnsiblePlaybook{},
 		}
@@ -360,11 +365,19 @@ func (w *Worker) ApplyUnixEndpointProfiles(msg *nats.Msg) {
 		// Generate Ansible config
 		ansibleConfig, err := w.GenerateAnsibleConfig(profile)
 		if err != nil {
-			log.Printf("[ERROR]: could not generate config for profile: %s, reason: %v", profile.Name, err)
+			log.Printf("[ERROR]: could not generate ansible config for profile: %s, reason: %v", profile.Name, err)
 			continue
 		}
 
 		p.AnsibleConfig = append(p.AnsibleConfig, ansibleConfig)
+
+		// Generate NetBird config
+		netbirdConfig, err := w.GenerateNetbirdConfig(profile, profileRequest.AgentID)
+		if err != nil {
+			log.Printf("[ERROR]: could not generate netbird config for profile: %s, reason: %v", profile.Name, err)
+			continue
+		}
+		p.NetBirdConfig = netbirdConfig
 
 		configurations = append(configurations, p)
 	}
@@ -407,7 +420,7 @@ func (w *Worker) GetAppliedProfiles(agentID string) ([]*ent.Profile, error) {
 
 func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCfg, error) {
 	if len(profile.Edges.Tasks) == 0 {
-		return nil, errors.New("profile has no tasks")
+		return nil, nil
 	}
 
 	cfg := wingetcfg.NewWingetCfg()
@@ -518,8 +531,6 @@ func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCf
 				return nil, err
 			}
 			cfg.AddResource(msiUninstall)
-		default:
-			return nil, errors.New("task type is not valid")
 		}
 	}
 	return cfg, nil
@@ -529,7 +540,7 @@ func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile) (*ansiblecfg.Ansibl
 	var err error
 
 	if len(profile.Edges.Tasks) == 0 {
-		return nil, errors.New("profile has no tasks")
+		return nil, nil
 	}
 
 	pb := ansiblecfg.NewAnsiblePlaybook()
@@ -716,6 +727,70 @@ func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile) (*ansiblecfg.Ansibl
 		}
 	}
 	return pb, nil
+}
+
+func (w *Worker) GenerateNetbirdConfig(profile *ent.Profile, agentID string) ([]*openuem_nats.NetbirdTask, error) {
+	if len(profile.Edges.Tasks) == 0 {
+		return []*openuem_nats.NetbirdTask{}, nil
+	}
+
+	a, err := w.Model.Client.Agent.Query().WithNetbird().Where(agent.ID(agentID)).Only(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	tasks := []*openuem_nats.NetbirdTask{}
+
+	idCmp := func(a, b *ent.Task) int {
+		return cmp.Compare(a.ID, b.ID)
+	}
+
+	slices.SortFunc(profile.Edges.Tasks, idCmp)
+
+	for _, t := range profile.Edges.Tasks {
+		nt := openuem_nats.NetbirdTask{}
+		nt.ID = strconv.Itoa(t.ID)
+		switch t.Type {
+		case task.TypeNetbirdInstall:
+			if a.Edges.Netbird == nil || (a.Edges.Netbird != nil && !a.Edges.Netbird.Installed) {
+				nt.Install = true
+				tasks = append(tasks, &nt)
+			}
+		case task.TypeNetbirdUninstall:
+			if a.Edges.Netbird == nil || (a.Edges.Netbird != nil && a.Edges.Netbird.Installed) {
+				nt.Uninstall = true
+				tasks = append(tasks, &nt)
+			}
+		case task.TypeNetbirdRegister:
+			ns, err := w.Model.GetNetbirdSettings(t.Tenant)
+			if err != nil {
+				return nil, err
+			}
+
+			// check if a netbird peer with this name exists
+			exists, err := utils.NetBirdPeerExists(strings.ToLower(a.Hostname), ns.ManagementURL, ns.AccessToken)
+			if err != nil {
+				return nil, err
+			}
+
+			// Peer not exists, so let's create a one-off key
+			if !exists {
+				nt.Register = true
+				nt.RegisterInfo = openuem_nats.NetbirdRegister{}
+
+				_, key, err := utils.CreateNetBirdOneOffSetupKeyAPI(ns.ManagementURL, agentID, t.NetbirdGroups, t.NetbirdAllowExtraDNSLabels, ns.AccessToken)
+				if err != nil {
+					return nil, err
+				}
+
+				nt.RegisterInfo.ManagementURL = ns.ManagementURL
+				nt.RegisterInfo.OneOffKey = key
+				tasks = append(tasks, &nt)
+			}
+		}
+	}
+
+	return tasks, nil
 }
 
 func (w *Worker) WinGetCfgDeploymentReport(msg *nats.Msg) {

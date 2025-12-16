@@ -8,10 +8,10 @@ require (
 	github.com/go-co-op/gocron/v2 v2.17.0
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/nats-io/nats.go v1.47.0
-	github.com/open-uem/ent v0.0.0-20251128162632-aaeea1f72a21
-	github.com/open-uem/nats v0.0.0-20251128111945-82960968a3fa
+	github.com/open-uem/ent v0.0.0-20251212131234-a21276e12e5c
+	github.com/open-uem/nats v0.0.0-20251212140146-6dc3fb9e0d69
 	github.com/open-uem/openuem-ansible-config v0.0.0-20250710075757-9ef6e3390073
-	github.com/open-uem/utils v0.0.0-20251014101747-824dc3574744
+	github.com/open-uem/utils v0.0.0-20251216155730-6ba25c99e4ef
 	github.com/open-uem/wingetcfg v0.0.0-20251011111407-80e823d91ea5
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/wneessen/go-mail v0.7.2
@@ -37,7 +37,7 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/klauspost/compress v1.18.2 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/nats-io/nkeys v0.4.11 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
