@@ -776,7 +776,7 @@ func (w *Worker) GenerateNetbirdConfig(profile *ent.Profile, agentID string) ([]
 			// Peer not exists, so let's create a one-off key
 			if !exists {
 				nt.Register = true
-				nt.RegisterInfo = openuem_nats.NetbirdRegister{}
+				nt.RegisterInfo = openuem_nats.NetbirdSettings{}
 
 				_, key, err := utils.CreateNetBirdOneOffSetupKeyAPI(ns.ManagementURL, agentID, t.NetbirdGroups, t.NetbirdAllowExtraDNSLabels, ns.AccessToken)
 				if err != nil {

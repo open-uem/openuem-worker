@@ -9,7 +9,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/nats-io/nats.go v1.47.0
 	github.com/open-uem/ent v0.0.0-20251212131234-a21276e12e5c
-	github.com/open-uem/nats v0.0.0-20251212140146-6dc3fb9e0d69
+	github.com/open-uem/nats v0.0.0-20251218122429-c0c7c0785ec9
 	github.com/open-uem/openuem-ansible-config v0.0.0-20250710075757-9ef6e3390073
 	github.com/open-uem/utils v0.0.0-20251216155730-6ba25c99e4ef
 	github.com/open-uem/wingetcfg v0.0.0-20251011111407-80e823d91ea5
