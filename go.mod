@@ -1,6 +1,6 @@
 module github.com/open-uem/openuem-worker
 
-go 1.25.3
+go 1.25.5
 
 require (
 	entgo.io/ent v0.14.5
@@ -8,10 +8,10 @@ require (
 	github.com/go-co-op/gocron/v2 v2.17.0
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/nats-io/nats.go v1.47.0
-	github.com/open-uem/ent v0.0.0-20251212131234-a21276e12e5c
-	github.com/open-uem/nats v0.0.0-20251218122429-c0c7c0785ec9
+	github.com/open-uem/ent v0.0.0-20251220072124-b7c9bbc5c91f
+	github.com/open-uem/nats v0.0.0-20251220104614-efae26e98557
 	github.com/open-uem/openuem-ansible-config v0.0.0-20250710075757-9ef6e3390073
-	github.com/open-uem/utils v0.0.0-20251216155730-6ba25c99e4ef
+	github.com/open-uem/utils v0.0.0-20251220104704-89477718ebb2
 	github.com/open-uem/wingetcfg v0.0.0-20251011111407-80e823d91ea5
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/wneessen/go-mail v0.7.2
