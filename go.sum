@@ -87,6 +87,8 @@ github.com/open-uem/utils v0.0.0-20251216155730-6ba25c99e4ef h1:Xb9YFrVKlJ/bzXvz
 github.com/open-uem/utils v0.0.0-20251216155730-6ba25c99e4ef/go.mod h1:nPL4xlsiCPyUiF8ntnyrlyz+pVjizIC+N5+TOvj3TLc=
 github.com/open-uem/utils v0.0.0-20251220104704-89477718ebb2 h1:y1Cxw0RDgBXrX+xefBZrXGjMKYrduSOqlLxoTonJiT8=
 github.com/open-uem/utils v0.0.0-20251220104704-89477718ebb2/go.mod h1:ecBMjP3ok7LPOGxETGc3Md4tyb4dPqmPhXlz4MTeUjQ=
+github.com/open-uem/utils v0.0.0-20251221104611-c55d64529212 h1:d7iSAxoUy9LmFuLO52laMZN7OvR8sRTy/nXbqDPUtsU=
+github.com/open-uem/utils v0.0.0-20251221104611-c55d64529212/go.mod h1:ecBMjP3ok7LPOGxETGc3Md4tyb4dPqmPhXlz4MTeUjQ=
 github.com/open-uem/wingetcfg v0.0.0-20251011111407-80e823d91ea5 h1:LQ6pwsgumUBcuw7cPy66jmLE/ZaIvbCZRGxcOFFkF24=
 github.com/open-uem/wingetcfg v0.0.0-20251011111407-80e823d91ea5/go.mod h1:b2rmcb7kD/AODHdvHGZ8TpzhX4qrkdDPrEGM5FmOBxQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
