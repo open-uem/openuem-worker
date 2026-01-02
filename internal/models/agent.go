@@ -392,6 +392,7 @@ func (m *Model) SaveLogicalDisksInfo(data *nats.AgentReport) error {
 			SetRemainingSpaceInUnits(driveData.RemainingSpaceInUnits).
 			SetBitlockerStatus(driveData.BitLockerStatus).
 			SetOwnerID(data.AgentID).
+			SetDriveType(driveData.DriveType).
 			Exec(ctx); err != nil {
 			return tx.Rollback()
 		}
