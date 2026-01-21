@@ -85,6 +85,13 @@ func (w *Worker) SubscribeToAgentWorkerQueues() error {
 		return err
 	}
 	log.Printf("[INFO]: subscribed to message wingetcfg.report")
+
+	_, err = w.NATSConnection.QueueSubscribe("bitlockerresult", "openuem-agents", w.BitLockerResult)
+	if err != nil {
+		log.Printf("[ERROR]: could not subscribe tobitlockerresult NATS message, reason: %v", err)
+		return err
+	}
+	log.Printf("[INFO]: subscribed to message bitlockerresult")
 	return nil
 }
 
@@ -857,4 +864,22 @@ func (w *Worker) WinGetCfgApplicationReport(msg *nats.Msg) {
 	}
 
 	// log.Println("[DEBUG]: should have responded to wingetcfg.report message")
+}
+
+func (w *Worker) BitLockerResult(msg *nats.Msg) {
+	bl := openuem_nats.BitLockerOp{}
+
+	// Unmarshal data
+	if err := json.Unmarshal(msg.Data, &bl); err != nil {
+		log.Println("[ERROR]: could not unmarshall BitLocker result from agent")
+	}
+
+	if err := w.Model.SaveBitLockerInfo(bl); err != nil {
+		log.Printf("[ERROR]: could not save BitLocker info, reason: %v", err)
+	}
+
+	if err := msg.Respond(nil); err != nil {
+		log.Printf("[ERROR]: could not respond to BitLocker result, reason: %v\n", err)
+	}
+
 }

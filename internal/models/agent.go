@@ -375,27 +375,79 @@ func (m *Model) SaveLogicalDisksInfo(data *nats.AgentReport) error {
 		return err
 	}
 
-	_, err = tx.LogicalDisk.Delete().Where(logicaldisk.HasOwnerWith(agent.ID(data.AgentID))).Exec(ctx)
+	// Generate the slice of labels of disks reported by the agent
+	reportedVolumes := []string{}
+	for _, item := range data.LogicalDisks {
+		reportedVolumes = append(reportedVolumes, item.Label)
+	}
+
+	// Delete logical disks that are not part of the report only if bitlocker not enabled and emptystored passphrase
+	allDisks, err := tx.LogicalDisk.Query().Where(logicaldisk.HasOwnerWith(agent.ID(data.AgentID))).All(context.Background())
 	if err != nil {
-		log.Printf("could not delete previous logical disks information: %v", err)
+		log.Printf("could not get previous logical disks information: %v", err)
 		return tx.Rollback()
 	}
 
-	for _, driveData := range data.LogicalDisks {
-		if err := tx.LogicalDisk.
-			Create().
-			SetLabel(driveData.Label).
-			SetUsage(driveData.Usage).
-			SetVolumeName(driveData.VolumeName).
-			SetSizeInUnits(driveData.SizeInUnits).
-			SetFilesystem(driveData.Filesystem).
-			SetRemainingSpaceInUnits(driveData.RemainingSpaceInUnits).
-			SetBitlockerStatus(driveData.BitLockerStatus).
-			SetOwnerID(data.AgentID).
-			SetDriveType(driveData.DriveType).
-			Exec(ctx); err != nil {
-			return tx.Rollback()
+	// Generate the slice of previous reported disks
+	previousVolumes := []string{}
+	for _, item := range allDisks {
+		previousVolumes = append(previousVolumes, item.Label)
+	}
+
+	for _, item := range allDisks {
+		if !slices.Contains(reportedVolumes, item.Label) && item.BitlockerStatus != "Encrypted" && item.BitlockerPassphrase == "" {
+			_, err = tx.LogicalDisk.Delete().Where(logicaldisk.HasOwnerWith(agent.ID(data.AgentID)), logicaldisk.LabelEQ(item.Label)).Exec(ctx)
+			if err != nil {
+				log.Printf("could not delete previous logical disks information: %v", err)
+				return tx.Rollback()
+			}
 		}
+	}
+
+	for _, driveData := range data.LogicalDisks {
+		if slices.Contains(previousVolumes, driveData.Label) {
+			if err := tx.LogicalDisk.
+				Update().
+				Where(logicaldisk.HasOwnerWith(agent.ID(data.AgentID)), logicaldisk.LabelEQ(driveData.Label)).
+				SetLabel(driveData.Label).
+				SetUsage(driveData.Usage).
+				SetVolumeName(driveData.VolumeName).
+				SetSizeInUnits(driveData.SizeInUnits).
+				SetFilesystem(driveData.Filesystem).
+				SetRemainingSpaceInUnits(driveData.RemainingSpaceInUnits).
+				SetBitlockerStatus(driveData.BitLockerStatus).
+				SetOwnerID(data.AgentID).
+				SetVolumeType(driveData.VolumeType).
+				SetBitlockerConversionStatus(driveData.BitLockerConversionStatus).
+				SetBitlockerEncryptionPercentage(driveData.BitLockerEncryptionPercentage).
+				SetBitlockerRecoveryKey(driveData.BitLockerRecoveryKey).
+				SetBitlockerIsAutoUnlockEnabled(driveData.BitLockerIsAutoUnlockEnabled).
+				SetBitlockerKeyProtectorsTypes(driveData.BitLockerKeyProtectorsTypes).
+				Exec(ctx); err != nil {
+				return tx.Rollback()
+			}
+		} else {
+			if err := tx.LogicalDisk.
+				Create().
+				SetLabel(driveData.Label).
+				SetUsage(driveData.Usage).
+				SetVolumeName(driveData.VolumeName).
+				SetSizeInUnits(driveData.SizeInUnits).
+				SetFilesystem(driveData.Filesystem).
+				SetRemainingSpaceInUnits(driveData.RemainingSpaceInUnits).
+				SetBitlockerStatus(driveData.BitLockerStatus).
+				SetOwnerID(data.AgentID).
+				SetVolumeType(driveData.VolumeType).
+				SetBitlockerConversionStatus(driveData.BitLockerConversionStatus).
+				SetBitlockerEncryptionPercentage(driveData.BitLockerEncryptionPercentage).
+				SetBitlockerRecoveryKey(driveData.BitLockerRecoveryKey).
+				SetBitlockerIsAutoUnlockEnabled(driveData.BitLockerIsAutoUnlockEnabled).
+				SetBitlockerKeyProtectorsTypes(driveData.BitLockerKeyProtectorsTypes).
+				Exec(ctx); err != nil {
+				return tx.Rollback()
+			}
+		}
+
 	}
 
 	return tx.Commit()
@@ -853,4 +905,49 @@ func (m *Model) ValidateTenantAndSite(tenantID, siteID int) (bool, error) {
 
 func (m *Model) GetAgentApps(agentId string) ([]*ent.App, error) {
 	return m.Client.App.Query().Where(app.HasOwnerWith(agent.ID(agentId), agent.AgentStatusNEQ(agent.AgentStatusWaitingForAdmission))).All(context.Background())
+}
+
+func (m *Model) SaveBitLockerInfo(bl nats.BitLockerOp) error {
+	query := m.Client.LogicalDisk.Update().
+		Where(logicaldisk.HasOwnerWith(agent.ID(bl.AgentID)), logicaldisk.LabelContains(bl.Volume)).
+		SetBitlockerStatus(bl.Status).
+		SetBitlockerConversionStatus(bl.ConversionStatus).
+		SetBitlockerEncryptionPercentage(bl.EncryptionPercentage).
+		SetBitlockerRecoveryKey(bl.RecoveryKey).
+		SetBitlockerOperationResult(bl.Error).
+		SetBitlockerOperationInProgress(bl.Operation).
+		SetBitlockerIsAutoUnlockEnabled(bl.IsAutoUnlockEnabled).
+		SetBitlockerKeyProtectorsTypes(bl.KeyProtectorsTypes).
+		SetVolumeType(bl.VolumeType)
+
+	if bl.Passphrase != "" {
+		query.SetBitlockerPassphrase(bl.Passphrase)
+	}
+
+	if bl.TPMVolumeKeyProtectorID != "" {
+		query.SetBitlockerTpmVolumeKeyProtectorID(bl.TPMVolumeKeyProtectorID)
+	}
+
+	if bl.ExternalKeyVolumeKeyProtectorID != "" {
+		query.SetBitlockerExternalKeyVolumeKeyProtectorID(bl.ExternalKeyVolumeKeyProtectorID)
+	}
+
+	if bl.PassphraseVolumeKeyProtectorID != "" {
+		query.SetBitlockerPassphraseVolumeKeyProtectorID(bl.PassphraseVolumeKeyProtectorID)
+	}
+
+	if bl.NumericPasswordVolumeKeyProtectorID != "" {
+		query.SetBitlockerNumericPasswordVolumeKeyProtectorID(bl.NumericPasswordVolumeKeyProtectorID)
+	}
+
+	// If volume is fully decrypted and no key protectors are available set them empty in database
+	if bl.ConversionStatus == nats.BitLockerFullyDecrypted && bl.KeyProtectorsTypes == "" {
+		query.SetBitlockerPassphrase("").
+			SetBitlockerPassphraseVolumeKeyProtectorID("").
+			SetBitlockerExternalKeyVolumeKeyProtectorID("").
+			SetBitlockerNumericPasswordVolumeKeyProtectorID("").
+			SetBitlockerTpmVolumeKeyProtectorID("")
+	}
+
+	return query.Exec(context.Background())
 }
