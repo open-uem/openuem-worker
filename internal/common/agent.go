@@ -226,22 +226,31 @@ func (w *Worker) ApplyWindowsEndpointProfiles(msg *nats.Msg) {
 
 	// Unmarshal data and get agentID
 	if err := json.Unmarshal(msg.Data, &profileRequest); err != nil {
-		log.Println("[ERROR]: could not unmarshall profile request")
+		log.Println("[ERROR]: could not unmarshall profile request", err.Error())
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
 	// Check agentID
 	if profileRequest.AgentID == "" {
 		log.Println("[ERROR]: agentID must not be empty")
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
 	// log.Println("[DEBUG]: received a wingetcfg.profiles message for: ", profileRequest.AgentID)
 
 	// Get profiles that should apply to this agent
-	profiles, err := w.GetAppliedProfiles(profileRequest.AgentID)
+	profiles, err := w.GetAppliedProfiles(profileRequest)
 	if err != nil {
 		log.Printf("[ERROR]: could not get applied profiles, reason: %v", err)
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
@@ -249,12 +258,18 @@ func (w *Worker) ApplyWindowsEndpointProfiles(msg *nats.Msg) {
 	exclusions, err := w.Model.GetExcludedWinGetPackages(profileRequest.AgentID)
 	if err != nil {
 		log.Printf("[ERROR]: could not get WinGetCfg packages exclusions, reason: %v", err)
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
 	deployments, err := w.Model.GetDeployedPackages(profileRequest.AgentID)
 	if err != nil {
 		log.Printf("[ERROR]: could not get deployed packages with WinGet, reason: %v", err)
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
@@ -306,19 +321,28 @@ func (w *Worker) ApplyUnixEndpointProfiles(msg *nats.Msg) {
 	// Unmarshal data and get agentID
 	if err := json.Unmarshal(msg.Data, &profileRequest); err != nil {
 		log.Println("[ERROR]: could not unmarshall profile request")
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
 	// Check agentID
 	if profileRequest.AgentID == "" {
 		log.Println("[ERROR]: agentID must not be empty")
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
 	// Get profiles that should apply to this agent
-	profiles, err := w.GetAppliedProfiles(profileRequest.AgentID)
+	profiles, err := w.GetAppliedProfiles(profileRequest)
 	if err != nil {
 		log.Printf("[ERROR]: could not get applied profiles, reason: %v", err)
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
@@ -360,9 +384,9 @@ func (w *Worker) ApplyUnixEndpointProfiles(msg *nats.Msg) {
 	}
 }
 
-func (w *Worker) GetAppliedProfiles(agentID string) ([]*ent.Profile, error) {
+func (w *Worker) GetAppliedProfiles(cfg openuem_nats.CfgProfiles) ([]*ent.Profile, error) {
 
-	a, err := w.Model.Client.Agent.Query().WithSite().Where(agent.ID(agentID)).Only(context.Background())
+	a, err := w.Model.Client.Agent.Query().WithSite().Where(agent.ID(cfg.AgentID)).Only(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -372,17 +396,32 @@ func (w *Worker) GetAppliedProfiles(agentID string) ([]*ent.Profile, error) {
 		return nil, fmt.Errorf("agent should be associated with only one site")
 	}
 
-	profilesAppliedToAll, err := w.Model.GetProfilesAppliedToAll(sites[0].ID)
-	if err != nil {
-		return nil, err
-	}
+	if cfg.ProfileID == 0 {
 
-	profilesAppliedToAgent, err := w.Model.GetProfilesAppliedToAgent(sites[0].ID, agentID)
-	if err != nil {
-		return nil, err
-	}
+		profilesAppliedToAll, err := w.Model.GetProfilesAppliedToAll(sites[0].ID)
+		if err != nil {
+			return nil, err
+		}
 
-	return append(profilesAppliedToAll, profilesAppliedToAgent...), nil
+		profilesAppliedToAgent, err := w.Model.GetProfilesAppliedToAgent(sites[0].ID, cfg.AgentID)
+		if err != nil {
+			return nil, err
+		}
+
+		return append(profilesAppliedToAll, profilesAppliedToAgent...), nil
+	} else {
+		profilesAppliedToAll, err := w.Model.GetProfilesAppliedToAllFilteredByProfile(sites[0].ID, cfg.ProfileID)
+		if err != nil {
+			return nil, err
+		}
+
+		profilesAppliedToAgent, err := w.Model.GetProfilesAppliedToAgentFilteredByProfile(sites[0].ID, cfg.AgentID, cfg.ProfileID)
+		if err != nil {
+			return nil, err
+		}
+
+		return append(profilesAppliedToAll, profilesAppliedToAgent...), nil
+	}
 }
 
 func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCfg, error) {

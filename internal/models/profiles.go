@@ -22,6 +22,10 @@ func (m *Model) GetProfilesAppliedToAll(siteID int) ([]*ent.Profile, error) {
 	return m.Client.Profile.Query().WithTasks().Where(profile.DisabledEQ(false), profile.ApplyToAll(true), profile.HasSiteWith(site.ID(siteID))).All(context.Background())
 }
 
+func (m *Model) GetProfilesAppliedToAllFilteredByProfile(siteID int, profileID int) ([]*ent.Profile, error) {
+	return m.Client.Profile.Query().WithTasks().Where(profile.ID(profileID), profile.DisabledEQ(false), profile.ApplyToAll(true), profile.HasSiteWith(site.ID(siteID))).All(context.Background())
+}
+
 func (m *Model) GetProfilesAppliedToAgent(siteID int, agentID string) ([]*ent.Profile, error) {
 	agent, err := m.Client.Agent.Query().WithTags().Where(agent.ID(agentID), agent.HasSiteWith(site.ID(siteID))).Only(context.Background())
 	if err != nil {
@@ -36,6 +40,25 @@ func (m *Model) GetProfilesAppliedToAgent(siteID int, agentID string) ([]*ent.Pr
 		}
 
 		return m.Client.Profile.Query().WithTasks().Where(profile.DisabledEQ(false), profile.HasTagsWith(tag.IDIn(tags...)), profile.HasSiteWith(site.ID(siteID))).All(context.Background())
+	}
+
+	return []*ent.Profile{}, nil
+}
+
+func (m *Model) GetProfilesAppliedToAgentFilteredByProfile(siteID int, agentID string, profileID int) ([]*ent.Profile, error) {
+	agent, err := m.Client.Agent.Query().WithTags().Where(agent.ID(agentID), agent.HasSiteWith(site.ID(siteID))).Only(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	if agent.Edges.Tags != nil {
+		tags := []int{}
+
+		for _, tag := range agent.Edges.Tags {
+			tags = append(tags, tag.ID)
+		}
+
+		return m.Client.Profile.Query().WithTasks().Where(profile.ID(profileID), profile.DisabledEQ(false), profile.HasTagsWith(tag.IDIn(tags...)), profile.HasSiteWith(site.ID(siteID))).All(context.Background())
 	}
 
 	return []*ent.Profile{}, nil
@@ -62,8 +85,6 @@ func (m *Model) SaveProfileApplicationIssues(p nats.ProfileReport) error {
 			return err
 		}
 	} else {
-		log.Println(p.AgentID, p.ProfileID)
-
 		profileIssue, err = m.Client.ProfileIssue.Create().SetError(p.Error).SetAgentsID(p.AgentID).SetProfileID(p.ProfileID).Save(context.Background())
 		if err != nil {
 			return err
@@ -75,7 +96,7 @@ func (m *Model) SaveProfileApplicationIssues(p nats.ProfileReport) error {
 	if p.Tasks != nil {
 		for _, report := range p.Tasks {
 
-			taskID, err := strconv.Atoi(strings.TrimRight(strings.TrimPrefix(report.Name, "task_"), "_"))
+			taskID, err := strconv.Atoi(strings.Split(strings.TrimPrefix(report.Name, "task_"), "_")[0])
 			if err != nil {
 				return errors.New("could not convert the task ID from string to int")
 			}
