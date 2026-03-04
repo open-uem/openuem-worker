@@ -72,7 +72,7 @@ func startCertManagerWorker(cCtx *cli.Context) error {
 
 	// get ocsp servers
 	ocspServers := []string{}
-	for _, ocsp := range strings.Split(cCtx.String("ocsp"), ",") {
+	for ocsp := range strings.SplitSeq(cCtx.String("ocsp"), ",") {
 		ocspServers = append(ocspServers, strings.TrimSpace(ocsp))
 	}
 	worker.OCSPResponders = ocspServers

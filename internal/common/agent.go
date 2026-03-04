@@ -79,7 +79,7 @@ func (w *Worker) SubscribeToAgentWorkerQueues() error {
 	}
 	log.Printf("[INFO]: subscribed to message wingetcfg.exclude")
 
-	_, err = w.NATSConnection.QueueSubscribe("wingetcfg.report", "openuem-agents", w.WinGetCfgApplicationReport)
+	_, err = w.NATSConnection.QueueSubscribe("wingetcfg.report", "openuem-agents", w.ProfileReportResponseHandler)
 	if err != nil {
 		log.Printf("[ERROR]: could not subscribe to wingetcfg.report NATS message, reason: %v", err)
 		return err
@@ -226,68 +226,50 @@ func (w *Worker) ApplyWindowsEndpointProfiles(msg *nats.Msg) {
 
 	// Unmarshal data and get agentID
 	if err := json.Unmarshal(msg.Data, &profileRequest); err != nil {
-		log.Println("[ERROR]: could not unmarshall profile request")
+		log.Println("[ERROR]: could not unmarshall profile request", err.Error())
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
 	// Check agentID
 	if profileRequest.AgentID == "" {
 		log.Println("[ERROR]: agentID must not be empty")
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
 	// log.Println("[DEBUG]: received a wingetcfg.profiles message for: ", profileRequest.AgentID)
 
 	// Get profiles that should apply to this agent
-	profiles, err := w.GetAppliedProfiles(profileRequest.AgentID)
+	profiles, err := w.GetAppliedProfiles(profileRequest)
 	if err != nil {
 		log.Printf("[ERROR]: could not get applied profiles, reason: %v", err)
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
-
-	// Alternative: the agent worker is going to check for excluded packages
-	// deployments, err := w.Model.GetDeployedPackages(profileRequest.AgentID)
-	// if err != nil {
-	// 	log.Printf("[ERROR]: could not get deployed packages with WinGet, reason: %v", err)
-	// 	return
-	// }
-
-	// installedApps, err := w.Model.GetAgentApps(profileRequest.AgentID)
-	// if err != nil {
-	// 	log.Printf("[ERROR]: could not get apps installed reported by the agent, reason: %v", err)
-	// 	return
-	// }
-
-	// // Check if a deployed app with winget has been uninstalled in the endpoint
-	// for _, d := range deployments {
-	// 	installed := false
-	// 	for _, app := range installedApps {
-	// 		if d.Name == app.Name {
-	// 			installed = true
-	// 			break
-	// 		}
-	// 	}
-	// 	if !installed {
-	// 		// We must remove it from our deployments and also add it to the exclusion list
-	// 		data := openuem_nats.DeployAction{}
-	// 		data.AgentId = profileRequest.AgentID
-	// 		data.PackageId = d.PackageID
-	// 		if err := w.Model.MarkPackageAsExcluded(data); err != nil {
-	// 			log.Printf("[ERROR]: could not set package %s as excluded, reason: %v", d.PackageID, err)
-	// 		}
-	// 	}
-	// }
 
 	// Now inform which packages has been excluded to the agent
 	exclusions, err := w.Model.GetExcludedWinGetPackages(profileRequest.AgentID)
 	if err != nil {
 		log.Printf("[ERROR]: could not get WinGetCfg packages exclusions, reason: %v", err)
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
 	deployments, err := w.Model.GetDeployedPackages(profileRequest.AgentID)
 	if err != nil {
 		log.Printf("[ERROR]: could not get deployed packages with WinGet, reason: %v", err)
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
@@ -339,19 +321,28 @@ func (w *Worker) ApplyUnixEndpointProfiles(msg *nats.Msg) {
 	// Unmarshal data and get agentID
 	if err := json.Unmarshal(msg.Data, &profileRequest); err != nil {
 		log.Println("[ERROR]: could not unmarshall profile request")
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
 	// Check agentID
 	if profileRequest.AgentID == "" {
 		log.Println("[ERROR]: agentID must not be empty")
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
 	// Get profiles that should apply to this agent
-	profiles, err := w.GetAppliedProfiles(profileRequest.AgentID)
+	profiles, err := w.GetAppliedProfiles(profileRequest)
 	if err != nil {
 		log.Printf("[ERROR]: could not get applied profiles, reason: %v", err)
+		if err := msg.Respond(nil); err != nil {
+			log.Printf("[ERROR]: could not send response to the agent requesting a profile, reason: %v\n", err)
+		}
 		return
 	}
 
@@ -363,13 +354,15 @@ func (w *Worker) ApplyUnixEndpointProfiles(msg *nats.Msg) {
 		}
 
 		// Generate Ansible config
-		ansibleConfig, err := w.GenerateAnsibleConfig(profile)
+		ansibleConfig, err := w.GenerateAnsibleConfig(profile, profileRequest.AgentID)
 		if err != nil {
 			log.Printf("[ERROR]: could not generate ansible config for profile: %s, reason: %v", profile.Name, err)
 			continue
 		}
 
-		p.AnsibleConfig = append(p.AnsibleConfig, ansibleConfig)
+		if len(ansibleConfig.Tasks) > 0 {
+			p.AnsibleConfig = append(p.AnsibleConfig, ansibleConfig)
+		}
 
 		// Generate NetBird config
 		netbirdConfig, err := w.GenerateNetbirdConfig(profile, profileRequest.AgentID)
@@ -393,9 +386,9 @@ func (w *Worker) ApplyUnixEndpointProfiles(msg *nats.Msg) {
 	}
 }
 
-func (w *Worker) GetAppliedProfiles(agentID string) ([]*ent.Profile, error) {
+func (w *Worker) GetAppliedProfiles(cfg openuem_nats.CfgProfiles) ([]*ent.Profile, error) {
 
-	a, err := w.Model.Client.Agent.Query().WithSite().Where(agent.ID(agentID)).Only(context.Background())
+	a, err := w.Model.Client.Agent.Query().WithSite().Where(agent.ID(cfg.AgentID)).Only(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -405,17 +398,32 @@ func (w *Worker) GetAppliedProfiles(agentID string) ([]*ent.Profile, error) {
 		return nil, fmt.Errorf("agent should be associated with only one site")
 	}
 
-	profilesAppliedToAll, err := w.Model.GetProfilesAppliedToAll(sites[0].ID)
-	if err != nil {
-		return nil, err
-	}
+	if cfg.ProfileID == 0 {
 
-	profilesAppliedToAgent, err := w.Model.GetProfilesAppliedToAgent(sites[0].ID, agentID)
-	if err != nil {
-		return nil, err
-	}
+		profilesAppliedToAll, err := w.Model.GetProfilesAppliedToAll(sites[0].ID)
+		if err != nil {
+			return nil, err
+		}
 
-	return append(profilesAppliedToAll, profilesAppliedToAgent...), nil
+		profilesAppliedToAgent, err := w.Model.GetProfilesAppliedToAgent(sites[0].ID, cfg.AgentID)
+		if err != nil {
+			return nil, err
+		}
+
+		return append(profilesAppliedToAll, profilesAppliedToAgent...), nil
+	} else {
+		profilesAppliedToAll, err := w.Model.GetProfilesAppliedToAllFilteredByProfile(sites[0].ID, cfg.ProfileID)
+		if err != nil {
+			return nil, err
+		}
+
+		profilesAppliedToAgent, err := w.Model.GetProfilesAppliedToAgentFilteredByProfile(sites[0].ID, cfg.AgentID, cfg.ProfileID)
+		if err != nil {
+			return nil, err
+		}
+
+		return append(profilesAppliedToAll, profilesAppliedToAgent...), nil
+	}
 }
 
 func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCfg, error) {
@@ -426,12 +434,22 @@ func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCf
 	cfg := wingetcfg.NewWingetCfg()
 
 	idCmp := func(a, b *ent.Task) int {
-		return cmp.Compare(a.ID, b.ID)
+		return cmp.Compare(a.Order, b.Order)
 	}
 
 	slices.SortFunc(profile.Edges.Tasks, idCmp)
 
 	for _, t := range profile.Edges.Tasks {
+		// ignore any tasks
+		if t.AgentType == task.AgentTypeAny {
+			continue
+		}
+
+		// ignore disabled tasks
+		if t.Disabled {
+			continue
+		}
+
 		taskID := fmt.Sprintf("task_%d_%d", t.ID, t.Version)
 
 		switch t.Type {
@@ -536,23 +554,49 @@ func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCf
 	return cfg, nil
 }
 
-func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile) (*ansiblecfg.AnsiblePlaybook, error) {
+func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile, agentID string) (*ansiblecfg.AnsiblePlaybook, error) {
 	var err error
 
 	if len(profile.Edges.Tasks) == 0 {
 		return nil, nil
 	}
 
+	a, err := w.Model.Client.Agent.Get(context.Background(), agentID)
+	if err != nil {
+		return nil, err
+	}
+
 	pb := ansiblecfg.NewAnsiblePlaybook()
 	pb.Name = profile.Name
 
 	idCmp := func(a, b *ent.Task) int {
-		return cmp.Compare(a.ID, b.ID)
+		return cmp.Compare(a.Order, b.Order)
 	}
 
 	slices.SortFunc(profile.Edges.Tasks, idCmp)
 
-	for i, t := range profile.Edges.Tasks {
+	for _, t := range profile.Edges.Tasks {
+
+		// ignore tasks not suitable for this agent os
+		if t.AgentType == task.AgentTypeAny {
+			continue
+		}
+
+		if a.Os == "macos" || a.Os == "macOS" {
+			if t.AgentType == task.AgentTypeLinux {
+				continue
+			}
+		} else {
+			if t.AgentType == task.AgentTypeMacos {
+				continue
+			}
+		}
+
+		// ignore disabled tasks
+		if t.Disabled {
+			continue
+		}
+
 		switch t.Type {
 		case task.TypeAddUnixLocalGroup:
 			var gid int
@@ -564,7 +608,7 @@ func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile) (*ansiblecfg.Ansibl
 				}
 			}
 
-			addLocalGroup, err := ansiblecfg.AddLocalGroup(fmt.Sprintf("task_%d", i), t.LocalGroupName, gid, t.LocalGroupSystem)
+			addLocalGroup, err := ansiblecfg.AddLocalGroup(fmt.Sprintf("task_%d", t.ID), t.LocalGroupName, gid, t.LocalGroupSystem, t.IgnoreErrors)
 			if err != nil {
 				return nil, err
 			}
@@ -644,12 +688,12 @@ func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile) (*ansiblecfg.Ansibl
 				}
 			}
 
-			addLinuxUser, err := ansiblecfg.AddLocalUser(fmt.Sprintf("task_%d", i), t.LocalUserAppend, t.LocalUserDescription,
+			addLinuxUser, err := ansiblecfg.AddLocalUser(fmt.Sprintf("task_%d", t.ID), t.LocalUserAppend, t.LocalUserDescription,
 				t.LocalUserCreateHome, expires, t.LocalUserForce, t.LocalUserGenerateSSHKey, t.LocalUserGroup, t.LocalUserGroups,
 				t.LocalUserHome, t.LocalUserUsername, t.LocalUserNonunique, t.LocalUserPassword, password_expire_account_disable, password_expire_max,
 				password_expire_min, password_expire_warn, t.LocalUserPasswordLock, t.LocalUserShell, t.LocalUserSkeleton, ssh_key_bits,
 				t.LocalUserSSHKeyComment, t.LocalUserSSHKeyFile, t.LocalUserSSHKeyPassphrase, t.LocalUserSSHKeyType,
-				t.LocalUserSystem, t.LocalUserUmask, uid, uid_max, uid_min, t.AgentType.String())
+				t.LocalUserSystem, t.LocalUserUmask, uid, uid_max, uid_min, t.AgentType.String(), t.IgnoreErrors)
 
 			if err != nil {
 				return nil, err
@@ -657,69 +701,69 @@ func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile) (*ansiblecfg.Ansibl
 			pb.AddAnsibleTask(addLinuxUser)
 
 		case task.TypeRemoveLocalUser:
-			removeLinux, err := ansiblecfg.RemoveLocalUser(fmt.Sprintf("task_%d", i), t.LocalUserForce, t.LocalUserUsername)
+			removeLinux, err := ansiblecfg.RemoveLocalUser(fmt.Sprintf("task_%d", t.ID), t.LocalUserForce, t.LocalUserUsername, t.IgnoreErrors)
 			if err != nil {
 				return nil, err
 			}
 			pb.AddAnsibleTask(removeLinux)
 
 		case task.TypeRemoveUnixLocalGroup:
-			removeLocalGroup, err := ansiblecfg.RemoveLocalGroup(fmt.Sprintf("task_%d", i), t.LocalGroupName, t.LocalGroupForce)
+			removeLocalGroup, err := ansiblecfg.RemoveLocalGroup(fmt.Sprintf("task_%d", t.ID), t.LocalGroupName, t.LocalGroupForce, t.IgnoreErrors)
 			if err != nil {
 				return nil, err
 			}
 			pb.AddAnsibleTask(removeLocalGroup)
 
 		case task.TypeUnixScript:
-			executeScript, err := ansiblecfg.ExecuteScript(fmt.Sprintf("task_%d", i), t.Script, t.ScriptExecutable, t.ScriptCreates, t.AgentType.String())
+			executeScript, err := ansiblecfg.ExecuteScript(fmt.Sprintf("task_%d", t.ID), t.Script, t.ScriptExecutable, t.ScriptCreates, t.AgentType.String(), t.IgnoreErrors)
 			if err != nil {
 				return nil, err
 			}
 			pb.AddAnsibleTask(executeScript)
 		case task.TypeFlatpakInstall:
-			install, err := ansiblecfg.InstallFlatpakPackage(fmt.Sprintf("task_%d", i), t.PackageID, t.PackageLatest)
+			install, err := ansiblecfg.InstallFlatpakPackage(fmt.Sprintf("task_%d", t.ID), t.PackageID, t.PackageLatest, t.IgnoreErrors)
 			if err != nil {
 				return nil, err
 			}
 			pb.AddAnsibleTask(install)
 		case task.TypeFlatpakUninstall:
-			uninstall, err := ansiblecfg.UninstallFlatpakPackage(fmt.Sprintf("task_%d", i), t.PackageID)
+			uninstall, err := ansiblecfg.UninstallFlatpakPackage(fmt.Sprintf("task_%d", t.ID), t.PackageID, t.IgnoreErrors)
 			if err != nil {
 				return nil, err
 			}
 			pb.AddAnsibleTask(uninstall)
 		case task.TypeBrewFormulaInstall:
-			install, err := ansiblecfg.InstallHomeBrewFormula(fmt.Sprintf("task_%d", i), t.PackageID, t.BrewInstallOptions, t.BrewUpdate)
+			install, err := ansiblecfg.InstallHomeBrewFormula(fmt.Sprintf("task_%d", t.ID), t.PackageID, t.BrewInstallOptions, t.BrewUpdate, t.IgnoreErrors)
 			if err != nil {
 				return nil, err
 			}
 			pb.AddAnsibleTask(install)
 		case task.TypeBrewFormulaUpgrade:
-			upgrade, err := ansiblecfg.UpgradeHomeBrewFormula(fmt.Sprintf("task_%d", i), t.PackageID, t.BrewUpdate, t.BrewUpgradeAll, t.BrewUpgradeOptions)
+			upgrade, err := ansiblecfg.UpgradeHomeBrewFormula(fmt.Sprintf("task_%d", t.ID), t.PackageID, t.BrewUpdate, t.BrewUpgradeAll, t.BrewUpgradeOptions, t.IgnoreErrors)
 			if err != nil {
 				return nil, err
 			}
 			pb.AddAnsibleTask(upgrade)
 		case task.TypeBrewFormulaUninstall:
-			uninstall, err := ansiblecfg.UninstallHomeBrewFormula(fmt.Sprintf("task_%d", i), t.PackageID)
+			uninstall, err := ansiblecfg.UninstallHomeBrewFormula(fmt.Sprintf("task_%d", t.ID), t.PackageID, t.IgnoreErrors)
 			if err != nil {
 				return nil, err
 			}
 			pb.AddAnsibleTask(uninstall)
 		case task.TypeBrewCaskInstall:
-			install, err := ansiblecfg.InstallHomeBrewCask(fmt.Sprintf("task_%d", i), t.PackageID, t.BrewInstallOptions, t.BrewUpdate)
+			install, err := ansiblecfg.InstallHomeBrewCask(fmt.Sprintf("task_%d", t.ID), t.PackageID, t.BrewInstallOptions, t.BrewUpdate, t.IgnoreErrors)
 			if err != nil {
 				return nil, err
 			}
 			pb.AddAnsibleTask(install)
 		case task.TypeBrewCaskUpgrade:
-			upgrade, err := ansiblecfg.UpgradeHomeBrewCask(fmt.Sprintf("task_%d", i), t.PackageID, t.BrewGreedy, t.BrewUpdate, t.BrewUpgradeAll)
+			upgrade, err := ansiblecfg.UpgradeHomeBrewCask(fmt.Sprintf("task_%d", t.ID), t.PackageID, t.BrewGreedy, t.BrewUpdate, t.BrewUpgradeAll, t.IgnoreErrors)
 			if err != nil {
 				return nil, err
 			}
 			pb.AddAnsibleTask(upgrade)
 		case task.TypeBrewCaskUninstall:
-			uninstall, err := ansiblecfg.UninstallHomeBrewCask(fmt.Sprintf("task_%d", i), t.PackageID)
+			uninstall, err := ansiblecfg.UninstallHomeBrewCask(fmt.Sprintf("task_%d", t.ID), t.PackageID, t.IgnoreErrors)
 			if err != nil {
 				return nil, err
 			}
@@ -742,12 +786,17 @@ func (w *Worker) GenerateNetbirdConfig(profile *ent.Profile, agentID string) ([]
 	tasks := []*openuem_nats.NetbirdTask{}
 
 	idCmp := func(a, b *ent.Task) int {
-		return cmp.Compare(a.ID, b.ID)
+		return cmp.Compare(a.Order, b.Order)
 	}
 
 	slices.SortFunc(profile.Edges.Tasks, idCmp)
 
 	for _, t := range profile.Edges.Tasks {
+		// ignore disabled tasks
+		if t.Disabled {
+			continue
+		}
+
 		nt := openuem_nats.NetbirdTask{}
 		nt.ID = strconv.Itoa(t.ID)
 		switch t.Type {
@@ -836,24 +885,24 @@ func (w *Worker) WinGetCfgMarkPackageAsExcluded(msg *nats.Msg) {
 	// log.Println("[DEBUG]: should have responded to wingetcfg.deploy message")
 }
 
-func (w *Worker) WinGetCfgApplicationReport(msg *nats.Msg) {
-	report := openuem_nats.WingetCfgReport{}
+func (w *Worker) ProfileReportResponseHandler(msg *nats.Msg) {
+	report := openuem_nats.ProfileReport{}
 
 	// log.Println("[DEBUG]: received a wingetcfg.report message")
 
 	// Unmarshal data
 	if err := json.Unmarshal(msg.Data, &report); err != nil {
-		log.Println("[ERROR]: could not unmarshall WinGetCfg report from agent")
+		log.Println("[ERROR]: could not unmarshall Profile report from agent")
 	}
 
 	// log.Printf("[DEBUG]: wingetcfg.report data, %v", report)
 
-	if err := w.Model.SaveProfileApplicationIssues(report.ProfileID, report.AgentID, report.Success, report.Error); err != nil {
-		log.Printf("[ERROR]: could not save WinGetCfg profile issue, reason: %v", err)
+	if err := w.Model.SaveProfileApplicationIssues(report); err != nil {
+		log.Printf("[ERROR]: could not save Profile report, reason: %v", err)
 	}
 
 	if err := msg.Respond(nil); err != nil {
-		log.Printf("[ERROR]: could not respond to WinGetCfg report, reason: %v\n", err)
+		log.Printf("[ERROR]: could not respond to Profile report, reason: %v\n", err)
 	}
 
 	// log.Println("[DEBUG]: should have responded to wingetcfg.report message")

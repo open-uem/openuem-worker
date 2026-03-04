@@ -105,7 +105,7 @@ func (w *Worker) GenerateCertManagerWorkerConfig() error {
 	}
 	ocspServers := []string{}
 	servers := key.String()
-	for _, ocsp := range strings.Split(servers, ",") {
+	for ocsp := range strings.SplitSeq(servers, ",") {
 		ocspServers = append(ocspServers, strings.TrimSpace(ocsp))
 	}
 	w.OCSPResponders = ocspServers
