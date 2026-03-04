@@ -354,13 +354,15 @@ func (w *Worker) ApplyUnixEndpointProfiles(msg *nats.Msg) {
 		}
 
 		// Generate Ansible config
-		ansibleConfig, err := w.GenerateAnsibleConfig(profile)
+		ansibleConfig, err := w.GenerateAnsibleConfig(profile, profileRequest.AgentID)
 		if err != nil {
 			log.Printf("[ERROR]: could not generate ansible config for profile: %s, reason: %v", profile.Name, err)
 			continue
 		}
 
-		p.AnsibleConfig = append(p.AnsibleConfig, ansibleConfig)
+		if len(ansibleConfig.Tasks) > 0 {
+			p.AnsibleConfig = append(p.AnsibleConfig, ansibleConfig)
+		}
 
 		// Generate NetBird config
 		netbirdConfig, err := w.GenerateNetbirdConfig(profile, profileRequest.AgentID)
@@ -438,6 +440,11 @@ func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCf
 	slices.SortFunc(profile.Edges.Tasks, idCmp)
 
 	for _, t := range profile.Edges.Tasks {
+		// ignore any tasks
+		if t.AgentType == task.AgentTypeAny {
+			continue
+		}
+
 		// ignore disabled tasks
 		if t.Disabled {
 			continue
@@ -547,11 +554,16 @@ func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCf
 	return cfg, nil
 }
 
-func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile) (*ansiblecfg.AnsiblePlaybook, error) {
+func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile, agentID string) (*ansiblecfg.AnsiblePlaybook, error) {
 	var err error
 
 	if len(profile.Edges.Tasks) == 0 {
 		return nil, nil
+	}
+
+	a, err := w.Model.Client.Agent.Get(context.Background(), agentID)
+	if err != nil {
+		return nil, err
 	}
 
 	pb := ansiblecfg.NewAnsiblePlaybook()
@@ -564,6 +576,22 @@ func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile) (*ansiblecfg.Ansibl
 	slices.SortFunc(profile.Edges.Tasks, idCmp)
 
 	for _, t := range profile.Edges.Tasks {
+
+		// ignore tasks not suitable for this agent os
+		if t.AgentType == task.AgentTypeAny {
+			continue
+		}
+
+		if a.Os == "macos" || a.Os == "macOS" {
+			if t.AgentType == task.AgentTypeLinux {
+				continue
+			}
+		} else {
+			if t.AgentType == task.AgentTypeMacos {
+				continue
+			}
+		}
+
 		// ignore disabled tasks
 		if t.Disabled {
 			continue

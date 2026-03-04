@@ -23,6 +23,7 @@ func (m *Model) SaveDeployInfo(data *nats.DeployAction) error {
 				SetInstalled(data.When).
 				SetUpdated(data.When).
 				SetFailed(data.Failed).
+				SetMoreInfo(data.Info).
 				Where(deployment.And(deployment.PackageID(data.PackageId), deployment.HasOwnerWith(agent.ID(data.AgentId)))).
 				Exec(context.Background())
 		} else {
@@ -33,6 +34,7 @@ func (m *Model) SaveDeployInfo(data *nats.DeployAction) error {
 				SetInstalled(data.When).
 				SetUpdated(data.When).
 				SetFailed(data.Failed).
+				SetMoreInfo(data.Info).
 				Exec(context.Background())
 		}
 
