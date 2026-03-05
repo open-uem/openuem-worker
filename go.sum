@@ -65,6 +65,8 @@ github.com/open-uem/openuem-ansible-config v0.0.0-20260127123556-80a04b5821c5 h1
 github.com/open-uem/openuem-ansible-config v0.0.0-20260127123556-80a04b5821c5/go.mod h1:mCdYkT1RTq4V3Ai6TjIfy7QoX68lhpLoF63+YXpPXFI=
 github.com/open-uem/utils v0.0.0-20251221104611-c55d64529212 h1:d7iSAxoUy9LmFuLO52laMZN7OvR8sRTy/nXbqDPUtsU=
 github.com/open-uem/utils v0.0.0-20251221104611-c55d64529212/go.mod h1:ecBMjP3ok7LPOGxETGc3Md4tyb4dPqmPhXlz4MTeUjQ=
+github.com/open-uem/utils v0.0.0-20260305135023-24f298daa053 h1:V7fOuQm/n0YHUBUcjjIn+wGH40X3L1NOyYwx2LNGbnw=
+github.com/open-uem/utils v0.0.0-20260305135023-24f298daa053/go.mod h1:6ry5JkXtSYcQHFvAIR1a/+08jIvMlUkoX2lVbtNtPiI=
 github.com/open-uem/wingetcfg v0.0.0-20251011111407-80e823d91ea5 h1:LQ6pwsgumUBcuw7cPy66jmLE/ZaIvbCZRGxcOFFkF24=
 github.com/open-uem/wingetcfg v0.0.0-20251011111407-80e823d91ea5/go.mod h1:b2rmcb7kD/AODHdvHGZ8TpzhX4qrkdDPrEGM5FmOBxQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
