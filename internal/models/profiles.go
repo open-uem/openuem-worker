@@ -6,6 +6,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/open-uem/ent"
 	"github.com/open-uem/ent/agent"
@@ -101,15 +102,34 @@ func (m *Model) SaveProfileApplicationIssues(p nats.ProfileReport) error {
 				return errors.New("could not convert the task ID from string to int")
 			}
 
-			taskExist, err := m.Client.Task.Query().Where(task.ID(taskID)).Exist(context.Background())
+			taskExist := true
+
+			theTask, err := m.Client.Task.Query().Where(task.ID(taskID)).First(context.Background())
 			if err != nil {
-				log.Printf("[ERROR]: could not check if profile task exists, reason: %v", err)
-				return err
+				if ent.IsNotFound(err) {
+					taskExist = false
+				} else {
+					log.Printf("[ERROR]: could not check if profile task exists, reason: %v", err)
+					return err
+				}
 			}
 
 			if !taskExist {
 				log.Printf("[ERROR]: the task %d for profile %d, doesn't exist", taskID, profileIssueID)
 				continue
+			}
+
+			// if we have a task to install, update or delete a package we must try to update the deployment info
+			if theTask.Type == task.TypeFlatpakInstall || theTask.Type == task.TypeBrewCaskInstall || theTask.Type == task.TypeBrewFormulaInstall {
+				m.SetFlatpakOrBrewDeploymentInfo(taskID, p, report, theTask, "install")
+			}
+
+			if theTask.Type == task.TypeBrewCaskUpgrade {
+				m.SetFlatpakOrBrewDeploymentInfo(taskID, p, report, theTask, "update")
+			}
+
+			if theTask.Type == task.TypeFlatpakUninstall || theTask.Type == task.TypeBrewCaskUninstall || theTask.Type == task.TypeBrewFormulaUninstall {
+				m.SetFlatpakOrBrewDeploymentInfo(taskID, p, report, theTask, "uninstall")
 			}
 
 			exists, err := m.Client.TaskReport.Query().
@@ -155,4 +175,32 @@ func (m *Model) SaveProfileApplicationIssues(p nats.ProfileReport) error {
 	}
 
 	return nil
+}
+
+func (m *Model) SetFlatpakOrBrewDeploymentInfo(taskID int, p nats.ProfileReport, report nats.TaskReport, t *ent.Task, action string) {
+	deployAction := nats.DeployAction{
+		Failed:         report.Failed,
+		PackageId:      t.PackageID,
+		PackageName:    t.PackageName,
+		AgentId:        p.AgentID,
+		Action:         action,
+		PackageVersion: "",
+	}
+
+	if t.Type == task.TypeBrewCaskInstall || t.Type == task.TypeBrewCaskUpgrade || t.Type == task.TypeBrewCaskUninstall {
+		deployAction.PackageId = "cask-" + t.PackageID
+	}
+
+	when, err := time.Parse(time.RFC3339Nano, report.EndTime)
+	if err == nil {
+		deployAction.When = when
+	}
+
+	if report.StdErr != "" {
+		deployAction.Info = report.StdErr
+	}
+
+	if err := m.SaveFlatpakOrBrewDeployInfo(deployAction); err != nil {
+		log.Printf("[ERROR]: could not save deployment action for flatpak install task %d, reason: %v", taskID, err)
+	}
 }
