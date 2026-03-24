@@ -80,8 +80,15 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string, autoAdmitA
 			}
 		}
 
-		// nickname, type and description must not be overwritten
-		query.SetNickname(existingAgent.Nickname).SetEndpointType(existingAgent.EndpointType).SetDescription(existingAgent.Description)
+		// nickname must not be overwritten unless the hostname changes and nickname is based in the hostname
+		if existingAgent.Hostname != data.Hostname && existingAgent.Nickname == existingAgent.Hostname {
+			query.SetNickname(data.Hostname)
+		} else {
+			query.SetNickname(existingAgent.Nickname)
+		}
+
+		// type and description must not be overwritten
+		query.SetEndpointType(existingAgent.EndpointType).SetDescription(existingAgent.Description)
 
 		// Check update task
 		query.SetUpdateTaskDescription(existingAgent.UpdateTaskDescription)
