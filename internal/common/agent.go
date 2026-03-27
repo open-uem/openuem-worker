@@ -721,13 +721,13 @@ func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile, agentID string) (*a
 			}
 			pb.AddAnsibleTask(executeScript)
 		case task.TypeFlatpakInstall:
-			install, err := ansiblecfg.InstallFlatpakPackage(fmt.Sprintf("task_%d", t.ID), t.PackageID, t.PackageLatest, t.IgnoreErrors)
+			install, err := ansiblecfg.InstallFlatpakPackage(fmt.Sprintf("task_%d", t.ID), t.PackageID, t.PackageBranch, t.PackageLatest, t.IgnoreErrors)
 			if err != nil {
 				return nil, err
 			}
 			pb.AddAnsibleTask(install)
 		case task.TypeFlatpakUninstall:
-			uninstall, err := ansiblecfg.UninstallFlatpakPackage(fmt.Sprintf("task_%d", t.ID), t.PackageID, t.IgnoreErrors)
+			uninstall, err := ansiblecfg.UninstallFlatpakPackage(fmt.Sprintf("task_%d", t.ID), t.PackageID, t.PackageBranch, t.IgnoreErrors)
 			if err != nil {
 				return nil, err
 			}
