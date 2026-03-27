@@ -179,12 +179,14 @@ func (m *Model) SaveProfileApplicationIssues(p nats.ProfileReport) error {
 
 func (m *Model) SetFlatpakOrBrewDeploymentInfo(taskID int, p nats.ProfileReport, report nats.TaskReport, t *ent.Task, action string) {
 	deployAction := nats.DeployAction{
-		Failed:         report.Failed,
-		PackageId:      t.PackageID,
-		PackageName:    t.PackageName,
-		AgentId:        p.AgentID,
-		Action:         action,
-		PackageVersion: "",
+		Failed:          report.Failed,
+		PackageId:       t.PackageID,
+		PackageName:     t.PackageName,
+		AgentId:         p.AgentID,
+		Action:          action,
+		PackageBranch:   t.PackageBranch,
+		PackageBrewType: t.PackageBrewType,
+		PackageVersion:  "",
 	}
 
 	if t.Type == task.TypeBrewCaskInstall || t.Type == task.TypeBrewCaskUpgrade || t.Type == task.TypeBrewCaskUninstall {
