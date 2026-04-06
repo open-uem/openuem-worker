@@ -176,48 +176,99 @@ func (m *Model) SaveAgentInfo(data *nats.AgentReport, servers string, autoAdmitA
 		// This is a new agent, we must set the nickname to the agent's hostname initially
 		query.SetNickname(data.Hostname)
 
-		// Set the associated site
-		if data.Site == "" {
-			s, err := m.GetDefaultSite()
+		// Check if agent has an enrollment token
+		usedEnrollmentToken := false
+		if data.EnrollmentToken != "" {
+			// Try to validate and use the enrollment token
+			tokenTenantID, tokenSiteID, err := m.ValidateEnrollmentToken(data.EnrollmentToken)
 			if err != nil {
-				log.Printf("[ERROR]: could not get default site, reason: %v", err)
-				return err
-			}
-			query.AddSite(s)
-		} else {
-			siteID, err := strconv.Atoi(data.Site)
-			if err != nil {
-				log.Printf("[ERROR]: could not convert site ID to int, reason: %v", err)
-				return err
-			}
-
-			tenantID, err := strconv.Atoi(data.Tenant)
-			if err != nil {
-				log.Printf("[ERROR]: could not convert tenant ID to int, reason: %v", err)
-				return err
-			}
-
-			// Check if tenantID is right and associated with the site
-			valid, err := m.ValidateTenantAndSite(tenantID, siteID)
-			if err != nil {
-				log.Printf("[ERROR]: could not check if tenant and site are valid, reason: %v", err)
-				return err
-			}
-
-			if valid {
-				query.AddSiteIDs(siteID)
-			} else {
-				log.Printf("[ERROR]: tenant and site are not valid")
-				return errors.New("tenant and site are not valid")
+				log.Printf("[WARN]: could not validate enrollment token, reason: %v", err)
+			} else if tokenTenantID > 0 {
+				// Token is valid, use its tenant/site
+				if tokenSiteID > 0 {
+					// Token has a specific site
+					valid, err := m.ValidateTenantAndSite(tokenTenantID, tokenSiteID)
+					if err != nil {
+						log.Printf("[ERROR]: could not validate token's tenant and site, reason: %v", err)
+						return err
+					}
+					if valid {
+						query.AddSiteIDs(tokenSiteID)
+						usedEnrollmentToken = true
+						log.Printf("[INFO]: agent enrolled using token to tenant %d, site %d", tokenTenantID, tokenSiteID)
+					}
+				} else {
+					// Token only has tenant, use default site of that tenant
+					defaultSite, err := m.GetDefaultSiteForTenant(tokenTenantID)
+					if err != nil {
+						log.Printf("[WARN]: could not get default site for tenant %d, reason: %v", tokenTenantID, err)
+					} else if defaultSite != nil {
+						query.AddSite(defaultSite)
+						usedEnrollmentToken = true
+						log.Printf("[INFO]: agent enrolled using token to tenant %d, default site %d", tokenTenantID, defaultSite.ID)
+					}
+				}
 			}
 		}
 
-		return query.
+		// If enrollment token was not used, fall back to original logic
+		if !usedEnrollmentToken {
+			// Set the associated site
+			if data.Site == "" {
+				s, err := m.GetDefaultSite()
+				if err != nil {
+					log.Printf("[ERROR]: could not get default site, reason: %v", err)
+					return err
+				}
+				query.AddSite(s)
+			} else {
+				siteID, err := strconv.Atoi(data.Site)
+				if err != nil {
+					log.Printf("[ERROR]: could not convert site ID to int, reason: %v", err)
+					return err
+				}
+
+				tenantID, err := strconv.Atoi(data.Tenant)
+				if err != nil {
+					log.Printf("[ERROR]: could not convert tenant ID to int, reason: %v", err)
+					return err
+				}
+
+				// Check if tenantID is right and associated with the site
+				valid, err := m.ValidateTenantAndSite(tenantID, siteID)
+				if err != nil {
+					log.Printf("[ERROR]: could not check if tenant and site are valid, reason: %v", err)
+					return err
+				}
+
+				if valid {
+					query.AddSiteIDs(siteID)
+				} else {
+					log.Printf("[ERROR]: tenant and site are not valid")
+					return errors.New("tenant and site are not valid")
+				}
+			}
+		}
+
+		err = query.
 			SetFirstContact(time.Now()).
 			SetLastContact(time.Now()).
 			OnConflictColumns(agent.FieldID).
 			UpdateNewValues().
 			Exec(context.Background())
+
+		if err != nil {
+			return err
+		}
+
+		// If enrollment token was used successfully, increment its usage counter
+		if usedEnrollmentToken {
+			if err := m.UseEnrollmentToken(data.EnrollmentToken); err != nil {
+				log.Printf("[WARN]: could not increment enrollment token usage, reason: %v", err)
+			}
+		}
+
+		return nil
 	}
 }
 
@@ -851,6 +902,10 @@ func (m *Model) GetDefaultSite() (*ent.Site, error) {
 	}
 
 	return m.Client.Site.Query().Where(site.IsDefault(true), site.HasTenantWith(tenant.ID(t.ID))).Only(context.Background())
+}
+
+func (m *Model) GetDefaultSiteForTenant(tenantID int) (*ent.Site, error) {
+	return m.Client.Site.Query().Where(site.IsDefault(true), site.HasTenantWith(tenant.ID(tenantID))).Only(context.Background())
 }
 
 func (m *Model) ValidateTenantAndSite(tenantID, siteID int) (bool, error) {
