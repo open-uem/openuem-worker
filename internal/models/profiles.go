@@ -16,18 +16,32 @@ import (
 	"github.com/open-uem/ent/tag"
 	"github.com/open-uem/ent/task"
 	"github.com/open-uem/ent/taskreport"
+	"github.com/open-uem/ent/tenant"
 	"github.com/open-uem/nats"
 )
 
-func (m *Model) GetProfilesAppliedToAll(siteID int) ([]*ent.Profile, error) {
-	return m.Client.Profile.Query().WithTasks().Where(profile.DisabledEQ(false), profile.ApplyToAll(true), profile.HasSiteWith(site.ID(siteID))).All(context.Background())
+func (m *Model) GetProfilesAppliedToAll(siteID int, tenantID int) ([]*ent.Profile, error) {
+	return m.Client.Profile.Query().WithTasks().
+		Where(
+			profile.DisabledEQ(false),
+			profile.ApplyToAll(true),
+			profile.Or(
+				profile.And(profile.Not(profile.HasTenant()), profile.Not(profile.HasSite())),
+				profile.HasTenantWith(tenant.ID(tenantID)),
+				profile.HasSiteWith(site.ID(siteID)),
+			),
+		).All(context.Background())
 }
 
 func (m *Model) GetProfilesAppliedToAllFilteredByProfile(siteID int, profileID int) ([]*ent.Profile, error) {
-	return m.Client.Profile.Query().WithTasks().Where(profile.ID(profileID), profile.DisabledEQ(false), profile.ApplyToAll(true), profile.HasSiteWith(site.ID(siteID))).All(context.Background())
+	return m.Client.Profile.Query().WithTasks().Where(
+		profile.ID(profileID),
+		profile.DisabledEQ(false),
+		profile.ApplyToAll(true),
+	).All(context.Background())
 }
 
-func (m *Model) GetProfilesAppliedToAgent(siteID int, agentID string) ([]*ent.Profile, error) {
+func (m *Model) GetProfilesAppliedToAgent(siteID int, agentID string, tenantID int) ([]*ent.Profile, error) {
 	agent, err := m.Client.Agent.Query().WithTags().Where(agent.ID(agentID), agent.HasSiteWith(site.ID(siteID))).Only(context.Background())
 	if err != nil {
 		return nil, err
@@ -40,7 +54,15 @@ func (m *Model) GetProfilesAppliedToAgent(siteID int, agentID string) ([]*ent.Pr
 			tags = append(tags, tag.ID)
 		}
 
-		return m.Client.Profile.Query().WithTasks().Where(profile.DisabledEQ(false), profile.HasTagsWith(tag.IDIn(tags...)), profile.HasSiteWith(site.ID(siteID))).All(context.Background())
+		return m.Client.Profile.Query().WithTasks().Where(
+			profile.DisabledEQ(false),
+			profile.HasTagsWith(tag.IDIn(tags...)),
+			profile.Or(
+				profile.HasSiteWith(site.ID(siteID)),
+				profile.HasTenantWith(tenant.ID(tenantID)),
+				profile.And(profile.Not(profile.HasTenant()), profile.Not(profile.HasSite())),
+			),
+		).All(context.Background())
 	}
 
 	return []*ent.Profile{}, nil
@@ -59,7 +81,7 @@ func (m *Model) GetProfilesAppliedToAgentFilteredByProfile(siteID int, agentID s
 			tags = append(tags, tag.ID)
 		}
 
-		return m.Client.Profile.Query().WithTasks().Where(profile.ID(profileID), profile.DisabledEQ(false), profile.HasTagsWith(tag.IDIn(tags...)), profile.HasSiteWith(site.ID(siteID))).All(context.Background())
+		return m.Client.Profile.Query().WithTasks().Where(profile.ID(profileID), profile.DisabledEQ(false), profile.HasTagsWith(tag.IDIn(tags...))).All(context.Background())
 	}
 
 	return []*ent.Profile{}, nil
