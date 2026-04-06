@@ -388,7 +388,7 @@ func (w *Worker) ApplyUnixEndpointProfiles(msg *nats.Msg) {
 
 func (w *Worker) GetAppliedProfiles(cfg openuem_nats.CfgProfiles) ([]*ent.Profile, error) {
 
-	a, err := w.Model.Client.Agent.Query().WithSite().Where(agent.ID(cfg.AgentID)).Only(context.Background())
+	a, err := w.Model.Client.Agent.Query().WithSite(func(q *ent.SiteQuery) { q.WithTenant().All(context.Background()) }).Where(agent.ID(cfg.AgentID)).Only(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -398,14 +398,19 @@ func (w *Worker) GetAppliedProfiles(cfg openuem_nats.CfgProfiles) ([]*ent.Profil
 		return nil, fmt.Errorf("agent should be associated with only one site")
 	}
 
+	tenant := a.Edges.Site[0].Edges.Tenant
+	if tenant == nil {
+		return nil, fmt.Errorf("agent should be associated with one tenant")
+	}
+
 	if cfg.ProfileID == 0 {
 
-		profilesAppliedToAll, err := w.Model.GetProfilesAppliedToAll(sites[0].ID)
+		profilesAppliedToAll, err := w.Model.GetProfilesAppliedToAll(sites[0].ID, tenant.ID)
 		if err != nil {
 			return nil, err
 		}
 
-		profilesAppliedToAgent, err := w.Model.GetProfilesAppliedToAgent(sites[0].ID, cfg.AgentID)
+		profilesAppliedToAgent, err := w.Model.GetProfilesAppliedToAgent(sites[0].ID, cfg.AgentID, tenant.ID)
 		if err != nil {
 			return nil, err
 		}
