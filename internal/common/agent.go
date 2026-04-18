@@ -501,6 +501,19 @@ func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCf
 			}
 			cfg.AddResource(registryKey)
 		case task.TypeAddLocalUser:
+			// decrypt local user password if key is set
+			if w.EncryptionMasterKey != "" {
+				isPasswordEncrypted, err := utils.IsSensitiveFieldEncrypted(t.LocalUserPassword, w.EncryptionMasterKey)
+				if err != nil {
+					return nil, err
+				}
+
+				if isPasswordEncrypted {
+					t.LocalUserPassword, err = utils.DecryptSensitiveField(t.LocalUserPassword, w.EncryptionMasterKey)
+					return nil, err
+				}
+			}
+
 			localUser, err := wingetcfg.AddOrModifyLocalUser(taskID, t.LocalUserUsername, t.LocalUserDescription, t.LocalUserDisable, t.LocalUserFullname, t.LocalUserPassword, t.LocalUserPasswordChangeNotAllowed, t.LocalUserPasswordChangeRequired, t.LocalUserPasswordNeverExpires)
 			if err != nil {
 				return nil, err
@@ -693,6 +706,19 @@ func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile, agentID string) (*a
 				}
 			}
 
+			// decrypt local user password if key is set
+			if w.EncryptionMasterKey != "" {
+				isAccessTokenEncrypted, err := utils.IsSensitiveFieldEncrypted(t.LocalUserPassword, w.EncryptionMasterKey)
+				if err != nil {
+					return nil, err
+				}
+
+				if isAccessTokenEncrypted {
+					t.LocalUserPassword, err = utils.DecryptSensitiveField(t.LocalUserPassword, w.EncryptionMasterKey)
+					return nil, err
+				}
+			}
+
 			addLinuxUser, err := ansiblecfg.AddLocalUser(fmt.Sprintf("task_%d", t.ID), t.LocalUserAppend, t.LocalUserDescription,
 				t.LocalUserCreateHome, expires, t.LocalUserForce, t.LocalUserGenerateSSHKey, t.LocalUserGroup, t.LocalUserGroups,
 				t.LocalUserHome, t.LocalUserUsername, t.LocalUserNonunique, t.LocalUserPassword, password_expire_account_disable, password_expire_max,
@@ -819,6 +845,19 @@ func (w *Worker) GenerateNetbirdConfig(profile *ent.Profile, agentID string) ([]
 			ns, err := w.Model.GetNetbirdSettings(t.Tenant)
 			if err != nil {
 				return nil, err
+			}
+
+			// decrypt NetBird Access token if key is set
+			if w.EncryptionMasterKey != "" {
+				isAccessTokenEncrypted, err := utils.IsSensitiveFieldEncrypted(ns.AccessToken, w.EncryptionMasterKey)
+				if err != nil {
+					return nil, err
+				}
+
+				if isAccessTokenEncrypted {
+					ns.AccessToken, err = utils.DecryptSensitiveField(ns.AccessToken, w.EncryptionMasterKey)
+					return nil, err
+				}
 			}
 
 			// check if a netbird peer with this name exists

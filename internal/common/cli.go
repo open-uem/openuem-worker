@@ -35,6 +35,7 @@ func (w *Worker) CheckCLICommonRequisites(cCtx *cli.Context) error {
 		return err
 	}
 
+	w.EncryptionMasterKey = cCtx.String("encryption-master-key")
 	w.NATSServers = cCtx.String("nats-servers")
 	return nil
 }

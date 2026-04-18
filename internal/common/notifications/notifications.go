@@ -9,6 +9,7 @@ import (
 
 	"github.com/open-uem/ent"
 	"github.com/open-uem/nats"
+	"github.com/open-uem/utils"
 	"github.com/wneessen/go-mail"
 )
 
@@ -62,7 +63,7 @@ func PrepareMessage(notification *nats.Notification, settings *ent.Settings) (*m
 	return m, nil
 }
 
-func PrepareSMTPClient(settings *ent.Settings) (*mail.Client, error) {
+func PrepareSMTPClient(settings *ent.Settings, encryptionMasterKey string) (*mail.Client, error) {
 	var err error
 	var c *mail.Client
 
@@ -71,6 +72,23 @@ func PrepareSMTPClient(settings *ent.Settings) (*mail.Client, error) {
 	if settings.SMTPAuth == "NOAUTH" || (settings.SMTPUser == "" && settings.SMTPPassword == "") {
 		c, err = mail.NewClient(smtpServer, mail.WithPort(settings.SMTPPort))
 	} else {
+		// if smtp password is not empty check if we have the key to decrypt it
+		if settings.SMTPPassword != "" {
+			if encryptionMasterKey != "" {
+				isSMTPPasswordEncrypted, err := utils.IsSensitiveFieldEncrypted(settings.SMTPPassword, encryptionMasterKey)
+				if err != nil {
+					return nil, err
+				}
+
+				if isSMTPPasswordEncrypted {
+					settings.SMTPPassword, err = utils.DecryptSensitiveField(settings.SMTPPassword, encryptionMasterKey)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+		}
+
 		c, err = mail.NewClient(smtpServer, mail.WithPort(settings.SMTPPort), mail.WithSMTPAuth(mail.SMTPAuthType(settings.SMTPAuth)),
 			mail.WithUsername(settings.SMTPUser), mail.WithPassword(settings.SMTPPassword))
 	}
