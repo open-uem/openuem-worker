@@ -503,12 +503,12 @@ func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCf
 		case task.TypeAddLocalUser:
 			// decrypt local user password if key is set
 			if w.EncryptionMasterKey != "" {
-				isAccessTokenEncrypted, err := utils.IsSensitiveFieldEncrypted(t.LocalUserPassword, w.EncryptionMasterKey)
+				isPasswordEncrypted, err := utils.IsSensitiveFieldEncrypted(t.LocalUserPassword, w.EncryptionMasterKey)
 				if err != nil {
 					return nil, err
 				}
 
-				if isAccessTokenEncrypted {
+				if isPasswordEncrypted {
 					t.LocalUserPassword, err = utils.DecryptSensitiveField(t.LocalUserPassword, w.EncryptionMasterKey)
 					return nil, err
 				}
@@ -845,6 +845,19 @@ func (w *Worker) GenerateNetbirdConfig(profile *ent.Profile, agentID string) ([]
 			ns, err := w.Model.GetNetbirdSettings(t.Tenant)
 			if err != nil {
 				return nil, err
+			}
+
+			// decrypt NetBird Access token if key is set
+			if w.EncryptionMasterKey != "" {
+				isAccessTokenEncrypted, err := utils.IsSensitiveFieldEncrypted(ns.AccessToken, w.EncryptionMasterKey)
+				if err != nil {
+					return nil, err
+				}
+
+				if isAccessTokenEncrypted {
+					ns.AccessToken, err = utils.DecryptSensitiveField(ns.AccessToken, w.EncryptionMasterKey)
+					return nil, err
+				}
 			}
 
 			// check if a netbird peer with this name exists
