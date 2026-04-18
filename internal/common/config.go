@@ -3,6 +3,8 @@ package common
 import (
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -74,6 +76,19 @@ func (w *Worker) GenerateCommonWorkerConfig(c string) error {
 	w.Replicas = len(strings.Split(w.NATSServers, ","))
 
 	w.EncryptionMasterKey = os.Getenv("ENCRYPTION_MASTER_KEY")
+
+	if runtime.GOOS == "linux" {
+		// if using systemd-creds
+		if os.Getenv("CREDENTIALS_DIRECTORY") != "" {
+			credentialFilePath := filepath.Join(os.Getenv("CREDENTIALS_DIRECTORY"), "openuem")
+			if _, err := os.Stat(credentialFilePath); err == nil {
+				data, err := os.ReadFile(credentialFilePath)
+				if err == nil {
+					w.EncryptionMasterKey = strings.TrimSpace(string(data))
+				}
+			}
+		}
+	}
 
 	return nil
 }
