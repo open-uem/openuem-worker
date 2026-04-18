@@ -2,6 +2,7 @@ package common
 
 import (
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -71,6 +72,8 @@ func (w *Worker) GenerateCommonWorkerConfig(c string) error {
 	w.NATSServers = key.String()
 
 	w.Replicas = len(strings.Split(w.NATSServers, ","))
+
+	w.EncryptionMasterKey = os.Getenv("ENCRYPTION_MASTER_KEY")
 
 	return nil
 }

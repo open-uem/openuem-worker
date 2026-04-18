@@ -501,6 +501,19 @@ func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCf
 			}
 			cfg.AddResource(registryKey)
 		case task.TypeAddLocalUser:
+			// decrypt local user password if key is set
+			if w.EncryptionMasterKey != "" {
+				isAccessTokenEncrypted, err := utils.IsSensitiveFieldEncrypted(t.LocalUserPassword, w.EncryptionMasterKey)
+				if err != nil {
+					return nil, err
+				}
+
+				if isAccessTokenEncrypted {
+					t.LocalUserPassword, err = utils.DecryptSensitiveField(t.LocalUserPassword, w.EncryptionMasterKey)
+					return nil, err
+				}
+			}
+
 			localUser, err := wingetcfg.AddOrModifyLocalUser(taskID, t.LocalUserUsername, t.LocalUserDescription, t.LocalUserDisable, t.LocalUserFullname, t.LocalUserPassword, t.LocalUserPasswordChangeNotAllowed, t.LocalUserPasswordChangeRequired, t.LocalUserPasswordNeverExpires)
 			if err != nil {
 				return nil, err
@@ -689,6 +702,19 @@ func (w *Worker) GenerateAnsibleConfig(profile *ent.Profile, agentID string) (*a
 			if t.LocalUserIDMin != "" {
 				uid_min, err = strconv.Atoi(t.LocalUserIDMin)
 				if err != nil {
+					return nil, err
+				}
+			}
+
+			// decrypt local user password if key is set
+			if w.EncryptionMasterKey != "" {
+				isAccessTokenEncrypted, err := utils.IsSensitiveFieldEncrypted(t.LocalUserPassword, w.EncryptionMasterKey)
+				if err != nil {
+					return nil, err
+				}
+
+				if isAccessTokenEncrypted {
+					t.LocalUserPassword, err = utils.DecryptSensitiveField(t.LocalUserPassword, w.EncryptionMasterKey)
 					return nil, err
 				}
 			}

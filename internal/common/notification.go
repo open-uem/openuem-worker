@@ -34,7 +34,7 @@ func (w *Worker) SendConfirmEmailHandler(msg *nats.Msg) {
 		return
 	}
 
-	client, err := notifications.PrepareSMTPClient(w.Settings)
+	client, err := notifications.PrepareSMTPClient(w.Settings, w.EncryptionMasterKey)
 	if err != nil {
 		log.Printf("[ERROR]: could not prepare SMTP client, reason: %v", err.Error())
 		msg.NakWithDelay(5 * time.Minute)
@@ -69,7 +69,7 @@ func (w *Worker) SendUserCertificateHandler(msg *nats.Msg) {
 		return
 	}
 
-	client, err := notifications.PrepareSMTPClient(w.Settings)
+	client, err := notifications.PrepareSMTPClient(w.Settings, w.EncryptionMasterKey)
 	if err != nil {
 		log.Printf("[ERROR]: could not prepare SMTP client, reason: %v", err.Error())
 		msg.NakWithDelay(5 * time.Minute)

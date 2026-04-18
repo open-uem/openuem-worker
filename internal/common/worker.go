@@ -46,6 +46,7 @@ type Worker struct {
 	Channel                server.Channel
 	Replicas               int
 	Jetstream              jetstream.JetStream
+	EncryptionMasterKey    string
 }
 
 func NewWorker(logName string) *Worker {
