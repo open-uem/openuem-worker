@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/open-uem/ent"
+	smtpsettings "github.com/open-uem/ent/settings"
 	"github.com/open-uem/nats"
 	"github.com/open-uem/utils"
 	"github.com/wneessen/go-mail"
@@ -96,5 +97,15 @@ func PrepareSMTPClient(settings *ent.Settings, encryptionMasterKey string) (*mai
 	if err != nil {
 		return nil, err
 	}
+
+	// manage encryption type
+	if settings.SMTPEncryptionType == smtpsettings.SMTPEncryptionTypeSmtps {
+		c.SetSSL(true)
+	}
+
+	if settings.SMTPEncryptionType == smtpsettings.SMTPEncryptionTypeStarttls {
+		c.SetTLSPortPolicy(mail.TLSMandatory)
+	}
+
 	return c, nil
 }

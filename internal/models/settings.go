@@ -30,6 +30,5 @@ func (m *Model) GetSMTPSettings() (*ent.Settings, error) {
 	return m.Client.Settings.Query().Where(settings.Not(settings.HasTenant())).
 		Select(settings.FieldSMTPAuth, settings.FieldSMTPPassword,
 			settings.FieldSMTPPort, settings.FieldSMTPServer,
-			settings.FieldSMTPStarttls, settings.FieldSMTPTLS,
-			settings.FieldSMTPUser, settings.FieldMessageFrom).Only(context.Background())
+			settings.FieldSMTPUser, settings.FieldMessageFrom, settings.FieldSMTPEncryptionType).Only(context.Background())
 }
