@@ -8,7 +8,7 @@ require (
 	github.com/go-co-op/gocron/v2 v2.19.1
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/nats-io/nats.go v1.49.0
-	github.com/open-uem/ent v0.0.0-20260420110541-021f6acffc13
+	github.com/open-uem/ent v0.0.0-20260427091717-6f7d005adb1d
 	github.com/open-uem/nats v0.11.1-0.20260327113100-98373a46adcf
 	github.com/open-uem/openuem-ansible-config v0.0.0-20260327072817-2d801600b177
 	github.com/open-uem/utils v0.0.0-20260415182213-cb5d4aa4d035
