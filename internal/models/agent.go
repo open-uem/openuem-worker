@@ -377,6 +377,21 @@ func (m *Model) SaveMemorySlotsInfo(data *nats.AgentReport) error {
 func (m *Model) SaveLogicalDisksInfo(data *nats.AgentReport) error {
 	ctx := context.Background()
 
+	// Preserve recovery keys from the previous cycle: if the agent sends an empty
+	// key (e.g. PowerShell was unavailable), we keep the last known value rather
+	// than losing it. Keys are indexed by drive label.
+	previousKeys := map[string]string{}
+	existing, err := m.Client.LogicalDisk.Query().
+		Where(logicaldisk.HasOwnerWith(agent.ID(data.AgentID))).
+		All(ctx)
+	if err == nil {
+		for _, d := range existing {
+			if d.BitlockerRecoveryKey != "" {
+				previousKeys[d.Label] = d.BitlockerRecoveryKey
+			}
+		}
+	}
+
 	tx, err := m.Client.Tx(ctx)
 	if err != nil {
 		return err
@@ -389,6 +404,14 @@ func (m *Model) SaveLogicalDisksInfo(data *nats.AgentReport) error {
 	}
 
 	for _, driveData := range data.LogicalDisks {
+		// Use previously known recovery key only when the drive is still encrypted and
+		// the current report has none (e.g. PowerShell was transiently unavailable).
+		// If the drive is no longer encrypted the key must be cleared, not preserved.
+		recoveryKey := driveData.BitLockerRecoveryKey
+		if recoveryKey == "" && driveData.BitLockerStatus == "Encrypted" {
+			recoveryKey = previousKeys[driveData.Label]
+		}
+
 		if err := tx.LogicalDisk.
 			Create().
 			SetLabel(driveData.Label).
@@ -398,6 +421,8 @@ func (m *Model) SaveLogicalDisksInfo(data *nats.AgentReport) error {
 			SetFilesystem(driveData.Filesystem).
 			SetRemainingSpaceInUnits(driveData.RemainingSpaceInUnits).
 			SetBitlockerStatus(driveData.BitLockerStatus).
+			SetBitlockerRecoveryKey(recoveryKey).
+			SetIsRemovable(driveData.IsRemovable).
 			SetOwnerID(data.AgentID).
 			Exec(ctx); err != nil {
 			return tx.Rollback()
