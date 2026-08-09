@@ -562,7 +562,7 @@ func (w *Worker) GenerateWinGetConfig(profile *ent.Profile) (*wingetcfg.WinGetCf
 			}
 			cfg.AddResource(msiUninstall)
 		case task.TypePowershellScript:
-			msiUninstall, err := wingetcfg.ExecutePowershellScript(taskID, t.Name, t.Script, t.ScriptRun.String())
+			msiUninstall, err := wingetcfg.ExecutePowershellScript(taskID, t.Name, t.Script, t.ScriptRun.String(), t.ScriptExecutable)
 			if err != nil {
 				return nil, err
 			}
