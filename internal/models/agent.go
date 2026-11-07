@@ -23,6 +23,7 @@ import (
 	"github.com/open-uem/ent/netbird"
 	"github.com/open-uem/ent/networkadapter"
 	"github.com/open-uem/ent/operatingsystem"
+	"github.com/open-uem/ent/pendingupdate"
 	"github.com/open-uem/ent/physicaldisk"
 	"github.com/open-uem/ent/printer"
 	"github.com/open-uem/ent/release"
@@ -555,6 +556,35 @@ func (m *Model) SaveUpdatesInfo(data *nats.AgentReport) error {
 			SetTitle(updatesData.Title).
 			SetDate(updatesData.Date).
 			SetSupportURL(updatesData.SupportURL).
+			SetOwnerID(data.AgentID).
+			Exec(ctx); err != nil {
+			return tx.Rollback()
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (m *Model) SavePendingUpdatesInfo(data *nats.AgentReport) error {
+	ctx := context.Background()
+
+	tx, err := m.Client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.PendingUpdate.Delete().Where(pendingupdate.HasOwnerWith(agent.ID(data.AgentID))).Exec(ctx)
+	if err != nil {
+		log.Printf("could not delete previous pending updates information: %v", err)
+		return tx.Rollback()
+	}
+
+	for _, pendingUpdateData := range data.PendingUpdates {
+		if err := tx.PendingUpdate.
+			Create().
+			SetTitle(pendingUpdateData.Title).
+			SetKBArticleIds(pendingUpdateData.KBArticleIDs).
+			SetIsDownloaded(pendingUpdateData.IsDownloaded).
 			SetOwnerID(data.AgentID).
 			Exec(ctx); err != nil {
 			return tx.Rollback()

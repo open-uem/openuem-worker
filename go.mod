@@ -52,3 +52,7 @@ require (
 	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect
 )
+
+replace github.com/open-uem/ent => github.com/Devority/ent v0.0.0-20261107104548-fb379441513b
+
+replace github.com/open-uem/nats => github.com/Devority/nats v0.11.1-0.20261107104602-18f2842635ea
