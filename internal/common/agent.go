@@ -184,6 +184,10 @@ func (w *Worker) ReportReceivedHandler(msg *nats.Msg) {
 		log.Printf("[ERROR]: could not save updates info into database, reason: %v\n", err)
 	}
 
+	if err := w.Model.SavePendingUpdatesInfo(&data); err != nil {
+		log.Printf("[ERROR]: could not save pending updates info into database, reason: %v\n", err)
+	}
+
 	if err := w.Model.SaveReleaseInfo(&data); err != nil {
 		log.Printf("[ERROR]: could not save release info into database, reason: %v\n", err)
 	}
